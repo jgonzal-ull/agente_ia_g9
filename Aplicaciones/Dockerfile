@@ -40,4 +40,5 @@ RUN pip install pypandoc_binary
 RUN pip install llama-index
 RUN pip install llama-index-embeddings-openai
 RUN pip install llama-index-llms-openai-like
+RUN pip install python-telegram-bot
 

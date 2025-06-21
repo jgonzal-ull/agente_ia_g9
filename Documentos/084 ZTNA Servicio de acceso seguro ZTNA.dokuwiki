@@ -1,0 +1,122 @@
+====== 084 [ZTNA] Servicio de acceso seguro ZTNA ======
+
+
+====== Objetivos del servicio ======
+
+**Introducción**
+
+El presente documento tiene por objeto definir las condiciones aplicables al servicio de acceso a la red de Confianza Cero (ZTNA). Este documento va dirigido a todos los usuarios potenciales de este servicio, es decir a todo el personal de la  ULL (PTGAS, PDI) y al personal de entidades externas que deban hacer uso, desde el exterior, a servicios, sistemas o aplicaciones de la ULL.
+
+ **Descripción del servicio**
+
+El ZTNA proporciona acceso remoto seguro a aplicaciones y servicios sobre la base de políticas definidas de control de acceso. Es decir, proveer acceso remoto seguro, basado en identidad y contexto, a los recursos internos de la universidad (como intranet, aplicaciones académicas, sistemas de gestión, etc.) desde cualquier lugar, sin necesidad de exponer la red a Internet ni usar VPN tradicional. A diferencia de las VPN, que otorgan acceso completo a redes LAN, el valor predeterminado de las soluciones ZTNA es denegarlo, solo proporcionando acceso a los servicios y aplicaciones a los que el usuario tiene permiso explícito.
+
+ 
+El objetivo principal del servicio es:
+  * Permitir el acceso remoto a recursos internos desde cualquier ubicación.
+  * Garantizar que solo usuarios autorizados y dispositivos en cumplimiento puedan acceder.
+  * Cumplir con normativas de seguridad (ENS, ISO 27001, NIST...).
+  * Facilitar el acceso sin comprometer la seguridad de la red universitaria.
+
+
+===== Ámbito del servicio =====
+
+Este servicio  va dirigido a todo el personal de la  ULL (PTGAS, PDI) y al personal de entidades externas que deban hacer uso, desde el exterior, a servicios, sistemas o aplicaciones de la ULL.
+
+Los responsables son, por un lado el Responsable funcional que es el servicio TIC (stic.direccion@ull.edu.es) y el responsable técnico, que es el área de sistemas del servicio TIC (stic.sistemas@ull.edu.es)
+
+
+
+===== Solicitud de servicio =====
+Para hacer uso del servicio,
+  - La solicitud deberá venir de algún usuario autorizado de la ULL, es decir a usuarios que tengan alguna relación laboral con la Universidad (PTGAS, PDI). Este podrá solicitar el servicio, tanto par el personal propio de la ULL, como para personal de empresas con contratos en vigor o entidades externas con vinculación con la Universidad de La Laguna.
+  - La solicitud será revisada y aprobada o con el visto bueno del servicio TIC .
+  - El usuario final que vaya a hacer uso del servicio, deberá firmar la “Aceptación de condiciones de privacidad, confidencialidad y seguridad” desde la sede electrónica de la Universidad de La Laguna en la siguiente ur:; Sede electrónica - Aceptación de condiciones de privacidad, confidencialidad y seguridad.
+  - Una vez recibida la solicitud aprobada y las condiciones de privacidad, confidencialidad y seguridad aceptada, se procederá al proceso de activación del servicio por parte del servicio TIC.
+  - Se hará  entrega de las instrucciones de uso al usuario final del servicio. 
+
+===== Baja de servicio =====
+
+  - La desactivación del acceso se llevará a cabo, sin previo aviso una vez se alcance alguno de los límites establecidos, según el protocolo de desactivación indicado en el [[servicios:084_ztna:procedimientos:protocolo_de_baja_o_desactivacion_de_acceso_al_servicio_ztna|documento de baja o desactivación del servicio]].
+  - El derecho de uso podrá estar limitado por tiempo, horas de uso, horario, localización, etc....
+
+====== Solicitud de soporte, proveedores y contratos de soporte =======
+
+  - Para solicitar soporte, el usuario final,  se deberá solicitar a través de los canales disponibles en el portal de soporte del servicio TIC (https://soporte.ull.es/stic/). Las incidencias con la aplicación deben ser enviadas mediante un ticket de GLPI al área de sistemas.
+
+  - Tenemos un servicio de soporte técnico directamente con Globalan, a través del correo: [[jvmesa@07globalan.com]] .
+  - Para el seguimiento del contrato, se ha creado el siguiente proyecto en GLPI,   [[https://www.ull.es/soporte/stic/front/project.form.php?id=1260 | Proyecto - 1260 - [INFRAESTRUCTURAS] HPE Aruba Networking SASE - Proxy acceso Remoto (Axis ztna) - GLPI]]. Aquí se podrá consultar el estado y vigencia del contrato.
+
+====== Arquitectura y componentes del servicio======
+
+ {{ :servicios:ztna_esquema.png?600 |}}
+
+La arquitectura del servicio es la reflejada en la imagen y los elementos que la componen son:
+
+=== Agente ZTNA Atmos (cliente ligero) ===
+
+  * Instalado en dispositivos de usuarios (Windows, macOS, iOS, Android).
+  * Verifica la postura del dispositivo (estado del firewall, cifrado de disco, etc.) antes de permitir el acceso.
+
+=== Conector, Broker o Gateway ZTNA ===
+
+  * Actúa como intermediario entre el usuario y la aplicación, sin exponer directamente las IPs internas.
+  * Selecciona automáticamente el punto de presencia (PoP) óptimo (AWS, Google Cloud, Oracle) para enrutar el tráfico de manera eficiente.
+  * Nunca expone directamente las IPs internas.
+  * Verifica identidad, contexto y políticas antes de permitir el acceso.
+
+=== Módulo de Autenticación Integrado (IdP) ===
+
+  * Integración con Microsoft Entra ID (Azure AD), 
+  * MFA y autenticación adaptativa.
+=== Motor de Políticas de Acceso (PDP) ===
+
+  * Permite definir políticas de acceso basadas en identidad, grupo, ubicación, hora del día y postura del dispositivo.
+
+=== Recursos protegidos  ===
+  * Aplicaciones web internas, servidores SSH/RDP, bases de datos, etc.
+  * No expuestos públicamente; acceso únicamente a través del ZTNA broker
+
+
+====== Usuarios clave ======
+
+Todas las contraseñas en bitwarden.
+
+=====   Política de uso  =====
+
+
+La Universidad de La Laguna ofrece acceso a través de la plataforma ZTNA a sus aplicaciones y/o servicios, a usuarios que tengan alguna relación con la Universidad, tanto personal propio de la ULL, como personal de empresas con contratos de servicio en vigor en la Universidad de La Laguna.
+Las condiciones generales de uso son las siguientes:  
+
+  * El uso del servicio ZTNA se limita **exclusivamente a fines académicos, proveedores de servicios, administrativos y de investigación** relacionados con la actividad en la Universidad de La Laguna.
+  * El acceso será concedido de **forma nominativa** a cada usuario, bajo su cuenta personal y no transferible.
+  * Es obligatorio el uso de **autenticación multifactor (MFA)**.
+  * El usuario es responsable de mantener **la confidencialidad de sus credenciales** de acceso.
+
+== Usos No Permitidos ==
+
+Se considerarán usos inadecuados del servicio ZTNA, entre otros:
+  * Compartir credenciales o permitir el acceso a terceros no autorizados.
+  * Usar el servicio para fines personales, comerciales o ajenos a la Universidad.
+  * Acceder, modificar o distribuir información para la que no se tenga autorización expresa.
+  * Eludir controles de seguridad, realizar escaneos, ingeniería inversa o manipular los sistemas protegidos.
+  * Instalar software malicioso o realizar actividades que comprometan la seguridad de los recursos universitarios.
+  * Utilizar dispositivos que no cumplan con las políticas de seguridad de la Universidad (por ejemplo, sin antivirus o sin cifrado de disco cuando sea requerido).
+
+== Supervisión y Auditoría ==
+
+  * El uso del servicio ZTNA será monitorizado y registrado para garantizar su correcto funcionamiento y la detección de accesos indebidos.
+  * Se conservarán los logs de conexión en cumplimiento con la legislación vigente y las políticas internas de seguridad.
+== Consecuencias del Incumplimiento  ==
+El incumplimiento de esta política podrá conllevar:
+  * Suspensión temporal o permanente del acceso al servicio ZTNA.
+  * Acciones disciplinarias según el reglamento interno de la Universidad.
+  * En casos graves, posibles acciones legales conforme al RGPD, la LOPDGDD o el Código Penal.
+
+====== Manuales y protocolos ======
+
+  * [[servicios:084_ztna:procedimientos:manual_de_usuario_ztna|Guía de usuario ZTNA]]
+  * [[servicios:084_ztna:procedimientos:manual_de_administrador_ztna|Manual del administrador ZTNA]]
+  * [[servicios:084_ztna:procedimientos:protocolo_de_baja_o_desactivacion_de_acceso_al_servicio_ztna|Procedimiento de baja o desactivación del servicio ZTNA ]]
+
+<note>IIAA</note>

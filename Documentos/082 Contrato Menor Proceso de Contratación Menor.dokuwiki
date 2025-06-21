@@ -1,0 +1,62 @@
+====== 082 [Contrato Menor] Proceso de Contratación Menor ======
+
+**Descripción:** Este proceso describe los pasos a seguir para la contratación menor de un servicio o una adquisición que va a ser imputada a alguna de las líneas presupuestarias del Servicio TIC. También aplica para las contrataciones menores que son imputadas a otras líneas presupuestarias pero que se ha dado la autorización al Servicio TIC para gestionar la adquisición.
+
+**Restricciones:** Los contratos menores sólo pueden ser iniciados por algún miembro del Comité Directivo del Servicio TIC. Cualquier técnico del servicio que tenga la necesidad de contratar un servicio o adquirir un bien debe dirigirse a la dirección del servicio para gestionar la tramitación.
+
+**Procedimiento:** El procedimiento de adquisición se realiza mediante el software de gestión de peticiones GLPI y el software de gestión contable UXXIEC. Este procedimiento ha de seguir los siguientes pasos:
+
+===== Fase 1: Inicio del contrato menor =====
+Esta fase corresponde desde que existe un intención de una adquisición hasta que ya existe un presupuesto definitivo de una empresa concreta que ha de tramitarse.
+
+  - Creación de ticket de seguimiento. En GLPI hay que crear un ticket para la gestión de todo el ciclo de vida del contrato menor. 
+  - Asignar el ticket de tipo **Petición** y en la categoría **Contratos Menores**
+  - Rellenar todos los campos que provee la plantilla para que se pueda gestionar adecuandamente el contrto menor
+  - El título de la petición debe seguir el formato: **Empresa** - **Importe** **Capítulo económico** **Presupuesto** - **Descripción del contrato menor**. Algunos ejemplos son los siguientes:
+    * Mistral - 3,5K Cap VI STIC - Adquisición de equipamiento de videoconferencia para reuniones híbridas (Rectorado)
+    * Timberlake - 5,5K Cap VI STIC - Licencias STATA 2025
+  - Si en los momentos iniciales no se conoce el proveedor o el importe se coloca el símbolo ? para indicar que todavía es desconocido. Un ejemplo sería el siguiente:
+    * ????? - ??? Cap VI STIC - Estufas para zona técnica
+  - El solicitante del contrato menor será siempre un miembro del Comité Directivo. En observador se puede colocar a cualquier otro interesado en la contratación.
+  - El grupo asignado en la fase inicial será el correspondiente a el Área del Sericio que solicita el contrato menor (GrupoInfraestructuras, GrupoServicios, GrupoSoporteTICyCalidad, ..)
+  - El técnico asignado en la fase inicial será el Jefe del Área correspondiente. Si la coordinación se realiza on el apoyo de otro técnico podrá asignarse a varios técnicos. Siempre deberá estar el Jefe del Área.
+  - El ticket debe asignarse a la tarea correspondiente dentro del proyecto de compras del año correspondiente. Por ejemplo: 1363 - SCR - Compras 2025 -> 1363.3 - Compras Soporte TIC 2025
+  - En el ticket debe añadirse el elemento de coste correspondiente al gasto a realizar relacionado con la línea del presupuesto.
+  - El presupuesto definitivo deberá añadirse como documento al ticket.
+
+===== Fase 2: Visto bueno y solicitud formal =====
+Esta fase corresponde al proceso de validación del presupuesto elegido y petición formal del servicio o la adquisición del proveedor de la misma.
+
+  - El Jefe del Área correspondiente deberá pasar el ticket al GrupoAdministración y asignarlo al usuario del personal administrativo (por ejemplo patorres)
+  - El Jefe del Área correspondiente deberá solicitar mediante petición de validación al Jefe del Servicio para que se de el visto bueno a la tramitación
+  - El Jefe del Servicio valida la petición. En el caso de no validarla se devuelve la petición al área correspondiente con los comentarios necesarios
+  - El personal administrativo genera el informe de necesidad, **cuando sea necesario** y lo pasa a la firma del Vicerrector/Gerencia responsable del gasto
+  - El personal adminsitrativo incorpora el informe de necesidad firmado al ticket
+  - El personal administrativo solicita la firma del presupuesto al Vicerrector/Gerencia responsable de la línea presupuestaria del gasto
+  - El personal administrativo incorpora el presupuesto firmado al ticket
+  - El personal administrativo comunica al proveedor el visto bueno de la oferta para que sean prestados los servicios o realizados los suministros y lo indica en el ticket "sin candado" para que sea avisado el jefe del área correspondiente.
+  - En la comunicación al proveedor se indican los códigos DIR y condiciones especiales que han de incorporarse a la factura en el momento de su emisión
+  - El ticket queda en estado de pendiente hasta que se realicen los servicios o suministros
+
+===== Fase 3: Recepción de los suministros o prestación de servicios =====
+Esta fase contempla el espacio de tiempo entre que se le comunica el visto bueno al proveedor y se reciben los servicios o los materiales contemplados en el contrato menor.
+Durante esta fase se han de realizar las siguientes acciones:
+  - Cuando se ha recibido la mercancía o los servicios prestados, el jefe de área, responsable del contrato menor ha de indicar en el ticket que ya se han realizado los trabajos correspondientes. Si existe algún alvarán de entrega o certificado de realizacón también se debe subir al ticket.
+  - Desde administración se le solicitará al proveedor que emita la factura recordándole los códigos DIR y el resto de elementos que ha de relacionar en la factura.
+  - Si la factura llegara al Servicio TIC previo al visto bueno del jefe de área, se indicará desde administración en el ticket que ya ha llegado la factura, y que de el visto bueno para proceder a su tramitación.
+  - Una vez recibida la factura, administración solicitará la firma del responsable de la línea presupuestaria a la que va imputado el contrato menor. En el caso que sea un caso de multiaplicación a varias líneas contables se solicitará la firma de todos los responsables implicados.
+  - Administración crea o completa el Justificante de Gasto en la aplicación de UXXIEC e incorpora toda la documentación necesaria en el mismo.
+  - Si el contrato menor implica el alta de bienes en inventario se crearán las latas correspondientes y se relacionarán con el justificante de gasto creado.
+  - Administración, una vez imputado y conformado el justificante de gasto con toda la documentación se generará una copia del mismo en PDF.
+  - Administración subirá el pdf al ticket y solucionará el mismo indicando que el contrato menor ha sido gestionado.
+  - El responsable del área recibirá una notificación de GLPI para que valide el cierre del ticket finalizando así la gestión del contrato menor.
+
+===== Otras cuestiones importantes =====
+  * Si el contrato menor implica un contrato con un proveedor, se debe hacer uso del objeto contrato para la gestión del mismo.
+  * En el proyecto compras xxx existirán cuatro tareas referentes a las áreas que gestionan contratos y en ellas estarán vinculadas todas las peticiones de contratos menores desde su fase inicial de creación
+  * Desde el instante en que se tiene contemplado la necesidad de un contrato menor es importante generar el ticket y asociarlo a las tarea de compras correspondiente
+  * Hay que tener cuidado no solapar dos veces el coste de un contrato mediante el coste en el ticket y el coste en el objeto de tipo contrato
+  * Los tickets no se eliminan, si se desiste de determinado contrato menor se le coloca coste cero y se soluciona el ticket indicando que no procede su tramitación
+
+<note>IIAA</note>
+
