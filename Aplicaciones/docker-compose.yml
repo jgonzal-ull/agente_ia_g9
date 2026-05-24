@@ -1,21 +1,12 @@
-#version: "3.8"
 services:
   app:
-    image: transformers_cuda_12_8_1_g9
-    runtime: nvidia
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    image: agente_ia_g9
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
-    - c:\G9-IA\:/app
+      - d:\BOB\Agente IA G9\:/app
     working_dir: /app
-    environment:
-      - HF_HOME=/app/huggingface # Establece la carpeta de Hugging Face
-      - CUDA_VISIBLE_DEVICES=0
     stdin_open: true
     tty: true
     entrypoint: >
