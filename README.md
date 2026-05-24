@@ -114,9 +114,29 @@ Verificar que el servidor LM Studio en `http://openai.ull.es:8080/v1` está acti
 docker exec -it agente_ia_g9 python3 /app/Aplicaciones/main_lmstudio.py
 ```
 
-### 5. Ejecutar `main_openai.py`
+### 5. Configurar la API key de OpenAI
 
-Poner la clave de API de OpenAI en la constante `OPENAI_API_KEY` del script (o usar la variable de entorno).
+Editar `Aplicaciones/main_openai.py` y sustituir el valor de `OPENAI_API_KEY` con la clave obtenida en [platform.openai.com/api-keys](https://platform.openai.com/api-keys):
+
+```python
+# Opción A: clave directa en el script
+OPENAI_API_KEY = "sk-proj-..."
+
+# Opción B: leer de variable de entorno (recomendado)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+```
+
+Si se usa la opción B, definir la variable antes de ejecutar:
+
+```bash
+# Linux / macOS
+export OPENAI_API_KEY="sk-proj-..."
+
+# Windows (PowerShell)
+$env:OPENAI_API_KEY = "sk-proj-..."
+```
+
+### 6. Ejecutar `main_openai.py`
 
 ```bash
 docker exec -it agente_ia_g9 python3 /app/Aplicaciones/main_openai.py
@@ -128,6 +148,30 @@ Si el nombre del contenedor es diferente:
 
 ```bash
 docker ps
+```
+
+---
+
+## Detener y eliminar el contenedor
+
+Al terminar las pruebas, parar y eliminar el contenedor:
+
+```bash
+# Parar el contenedor
+docker compose -f Aplicaciones/docker-compose.yml down
+```
+
+Esto detiene y elimina el contenedor. La imagen `agente_ia_g9` se conserva para la próxima vez; si también se quiere eliminar:
+
+```bash
+# Eliminar además la imagen
+docker rmi agente_ia_g9
+```
+
+Para eliminar todo (contenedor, imagen y volúmenes anónimos):
+
+```bash
+docker compose -f Aplicaciones/docker-compose.yml down --rmi all
 ```
 
 ---
