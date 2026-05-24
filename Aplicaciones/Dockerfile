@@ -17,5 +17,6 @@ RUN pip install --no-cache-dir \
     pypandoc_binary \
     llama-index \
     llama-index-embeddings-openai \
+    llama-index-llms-openai \
     llama-index-llms-openai-like \
     python-telegram-bot
