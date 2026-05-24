@@ -1,6 +1,7 @@
 services:
   app:
     image: agente_ia_g9
+    container_name: agente_ia_g9
     build:
       context: .
       dockerfile: Dockerfile

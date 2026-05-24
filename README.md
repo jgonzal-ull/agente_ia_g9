@@ -111,7 +111,7 @@ Esto construye la imagen `agente_ia_g9` a partir del `Dockerfile` e inicia el co
 Verificar que el servidor LM Studio en `http://openai.ull.es:8080/v1` está activo y tiene cargados los modelos indicados. Ajustar `LMSTUDIO_APITOKEN` en el script si es necesario.
 
 ```bash
-docker exec -it agente_ia_g9-app-1 python3 /app/Aplicaciones/main_lmstudio.py
+docker exec -it agente_ia_g9 python3 /app/Aplicaciones/main_lmstudio.py
 ```
 
 ### 5. Ejecutar `main_openai.py`
@@ -119,7 +119,7 @@ docker exec -it agente_ia_g9-app-1 python3 /app/Aplicaciones/main_lmstudio.py
 Poner la clave de API de OpenAI en la constante `OPENAI_API_KEY` del script (o usar la variable de entorno).
 
 ```bash
-docker exec -it agente_ia_g9-app-1 python3 /app/Aplicaciones/main_openai.py
+docker exec -it agente_ia_g9 python3 /app/Aplicaciones/main_openai.py
 ```
 
 ### Obtener el nombre exacto del contenedor
