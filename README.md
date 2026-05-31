@@ -106,34 +106,32 @@ docker compose -f Aplicaciones/docker-compose.yml up -d --build
 
 Esto construye la imagen `agente_ia_g9` a partir del `Dockerfile` e inicia el contenedor.
 
-### 4. Ejecutar `main_lmstudio.py`
+### 4. Configurar las credenciales (fichero `.env`)
 
-Verificar que el servidor LM Studio en `http://openai.ull.es:8080/v1` está activo y tiene cargados los modelos indicados. Ajustar `LMSTUDIO_APITOKEN` en el script si es necesario.
+Las claves de API se gestionan mediante un fichero `.env` que **nunca se sube al repositorio**. Copiar la plantilla incluida y rellenar los valores reales:
+
+```bash
+cp Aplicaciones/.env.example Aplicaciones/.env
+```
+
+Editar `Aplicaciones/.env` con las claves correspondientes:
+
+```env
+LMSTUDIO_APITOKEN=tu-token-lmstudio-aqui
+OPENAI_API_KEY=sk-proj-tu-clave-openai-aqui
+```
+
+- `LMSTUDIO_APITOKEN`: token de acceso al servidor LM Studio en `http://openai.ull.es:8080/v1`.
+- `OPENAI_API_KEY`: clave obtenida en [platform.openai.com/api-keys](https://platform.openai.com/api-keys). Solo necesaria para `main_openai.py`.
+
+El `docker-compose.yml` carga este fichero automáticamente al arrancar el contenedor (`env_file: .env`), por lo que no es necesario tocar el código ni definir variables manualmente.
+
+### 5. Ejecutar `main_lmstudio.py`
+
+Verificar que el servidor LM Studio en `http://openai.ull.es:8080/v1` está activo y tiene cargados los modelos indicados.
 
 ```bash
 docker exec -it agente_ia_g9 python3 /app/Aplicaciones/main_lmstudio.py
-```
-
-### 5. Configurar la API key de OpenAI
-
-Editar `Aplicaciones/main_openai.py` y sustituir el valor de `OPENAI_API_KEY` con la clave obtenida en [platform.openai.com/api-keys](https://platform.openai.com/api-keys):
-
-```python
-# Opción A: clave directa en el script
-OPENAI_API_KEY = "sk-proj-..."
-
-# Opción B: leer de variable de entorno (recomendado)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-```
-
-Si se usa la opción B, definir la variable antes de ejecutar:
-
-```bash
-# Linux / macOS
-export OPENAI_API_KEY="sk-proj-..."
-
-# Windows (PowerShell)
-$env:OPENAI_API_KEY = "sk-proj-..."
 ```
 
 ### 6. Ejecutar `main_openai.py`
