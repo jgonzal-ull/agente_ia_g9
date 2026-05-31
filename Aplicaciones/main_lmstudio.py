@@ -31,7 +31,7 @@ CARPETA_ENTRADA_DOCUMENTOS = "/app/Nuevos documentos/"      # PDFs pendientes de
 
 # Servidor LM Studio
 SERVIDOR_LMSTUDIO = "http://openai.ull.es:8080/v1"
-LMSTUDIO_APITOKEN = "sk-lm-baohYsRE:q1jPmxp2BE3TudNh858z"
+LMSTUDIO_APITOKEN = os.getenv("LMSTUDIO_APITOKEN", "")
 MODELO_LLM        = "qwen/qwen3.5-9b"
 MODELO_EMBEDDINGS = "text-embedding-qwen3-embedding-0.6b"
 

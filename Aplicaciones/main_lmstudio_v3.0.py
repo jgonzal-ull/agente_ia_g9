@@ -10,6 +10,7 @@ import time
 from typing import Any, List
 
 import pandas as pd
+import pypandoc
 import requests
 
 from pypdf import PdfReader
@@ -146,9 +147,8 @@ def dividir_con_solapamiento(texto: str, max_palabras: int, solapamiento: int) -
     ]
 
 
-def digitaliza_un_documento(documento: dict, fila_indice: Any) -> list:
-    """Extrae el texto del PDF página a página y genera trozos con metadatos."""
-    print(f"  Digitalizando: {documento['nombre_con_extension']}")
+def _digitaliza_pdf(documento: dict, fila_indice: Any) -> list:
+    """Extrae texto del PDF página a página y genera trozos con metadatos."""
     resultado = []
     try:
         pdf = PdfReader(documento["ruta_completa"])
@@ -177,6 +177,66 @@ def digitaliza_un_documento(documento: dict, fila_indice: Any) -> list:
     except Exception as e:
         print(f"  Error procesando {documento['nombre_con_extension']}: {e}")
     return resultado
+
+
+def _digitaliza_con_pandoc(documento: dict, fila_indice: Any, formato: str) -> list:
+    """Convierte un fichero de texto con pandoc a texto plano y genera trozos con metadatos."""
+    resultado = []
+    try:
+        with open(documento["ruta_completa"], "r", encoding="utf-8") as f:
+            contenido = f.read()
+        texto_plano = pypandoc.convert_text(
+            contenido, "plain", format=formato, extra_args=["--wrap=none"]
+        )
+        if not texto_plano.strip():
+            return []
+        indice_trozo = 0
+        for trozo in dividir_con_solapamiento(
+            texto_plano, UMBRAL_MAXIMO_PALABRAS, PALABRAS_SOLAPAMIENTO
+        ):
+            if len(trozo.split()) < NUMERO_MINIMO_PALABRAS:
+                continue
+            metadatos = fila_indice.to_dict()
+            metadatos.update({
+                "file_name":              documento["nombre_con_extension"],
+                "file_path":              documento["ruta_completa"],
+                "LongitudTexto":          len(trozo),
+                "NumeroPalabras":         len(trozo.split()),
+                "NumeroTrozoEnDocumento": indice_trozo,
+                "IdTrozoTexto":           f"{fila_indice['Identificador']}-{indice_trozo}",
+            })
+            resultado.append({"texto": trozo, "metadatos": metadatos})
+            indice_trozo += 1
+    except Exception as e:
+        print(f"  Error procesando {documento['nombre_con_extension']}: {e}")
+    return resultado
+
+
+def _digitaliza_dokuwiki(documento: dict, fila_indice: Any) -> list:
+    """Procesa un fichero DokuWiki usando el parser pandoc correspondiente."""
+    return _digitaliza_con_pandoc(documento, fila_indice, "dokuwiki")
+
+
+def _digitaliza_markdown(documento: dict, fila_indice: Any) -> list:
+    """Procesa un fichero Markdown usando el parser pandoc correspondiente."""
+    return _digitaliza_con_pandoc(documento, fila_indice, "markdown")
+
+
+def digitaliza_un_documento(documento: dict, fila_indice: Any) -> list:
+    """Despacha el procesamiento al parser adecuado según la extensión del fichero."""
+    ext = documento["extension"].lower()
+    if ext == "pdf":
+        print(f"  Digitalizando (PDF)      : {documento['nombre_con_extension']}")
+        return _digitaliza_pdf(documento, fila_indice)
+    elif ext == "dokuwiki":
+        print(f"  Digitalizando (DokuWiki) : {documento['nombre_con_extension']}")
+        return _digitaliza_dokuwiki(documento, fila_indice)
+    elif ext == "md":
+        print(f"  Digitalizando (Markdown) : {documento['nombre_con_extension']}")
+        return _digitaliza_markdown(documento, fila_indice)
+    else:
+        print(f"  Extensión no soportada   : '{ext}' ({documento['nombre_con_extension']})")
+        return []
 
 
 def digitaliza_documentos(listado: list, df_indice: Any) -> List[TextNode]:

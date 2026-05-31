@@ -25,8 +25,7 @@ FICHERO_INDICE             = "/app/Datos/indice.xlsx"       # registro de docume
 CARPETA_ENTRADA_DOCUMENTOS = "/app/Nuevos documentos/"      # PDFs pendientes de indexar
 
 # API OpenAI
-# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_API_KEY    = "XXXX"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 MODELO_LLM        = "gpt-4o-mini"
 MODELO_EMBEDDINGS = "text-embedding-3-small"
 
