@@ -6,7 +6,23 @@ Registro de cambios del proyecto **Agente IA G9** — Sistema RAG con LlamaIndex
 
 ## [3.0] — main_lmstudio_v3.0.py / main_openai_v3.0.py
 
-### Añadido
+### Añadido (iteración 2)
+- **Troceado semántico** (`MODO_TROCEADO = "semantico"`): usa `SemanticSplitterNodeParser` de LlamaIndex, que llama al modelo de embeddings para detectar cambios de tema y producir trozos más coherentes. La variable `MODO_TROCEADO` permite alternar entre `"fijo"` y `"semantico"` sin tocar el resto del código.
+- **Parámetros del splitter semántico**: `BUFFER_SIZE_SEMANTICO` y `BREAKPOINT_PERCENTILE_SEMANTICO` expuestos en la sección de configuración.
+- **Filtrado de trozos cortos** (`_filtrar_trozos_cortos`): trozos por debajo de `UMBRAL_VISUALIZACION_PALABRAS` (30 palabras) se eliminan del índice y se muestran por pantalla. El último trozo de cada documento siempre se conserva.
+- **Persistencia del índice** (`CARPETA_DATOS_SALVADOS`): el índice vectorial se guarda en `Datos/data_storage/` usando `StorageContext`. En ejecuciones posteriores se carga desde disco sin recalcular embeddings.
+- **Función `_indice_existe()`**: comprueba si `docstore.json` está presente para decidir si cargar o construir.
+- **Función `actualizar_indice()`**: añade nuevos nodos a un índice existente y repersiste, permitiendo un flujo incremental.
+- **Carpeta `Documentos/`** y constante `CARPETA_DOCUMENTOS_PROCESADOS`: cada documento procesado se mueve automáticamente de `Nuevos documentos/` a `Documentos/` con `shutil.move`. Los documentos sin registro en `indice.xlsx` permanecen en la carpeta de entrada como aviso.
+- **Flujo diario completo en `main()`**: cubre 5 escenarios (construir / cargar+actualizar / cargar existente / salir) según el estado de la carpeta de entrada y del índice persistido.
+- **Reporte del índice** (`mostrar_reporte_indice`): tabla impresa antes de cada chat con columnas Documento / Trozos / Palabras / ~Tokens y fila de totales.
+- **Filtro por estado** (`FILTRO_ESTADO = "Vigente"`): el retriever usa `MetadataFilters` + `ExactMatchFilter` para excluir documentos marcados como no vigentes.
+- **Control del retriever**: `RETRIEVER_TOP_K = 4` limita el número máximo de nodos recuperados; `SimilarityPostprocessor(similarity_cutoff=0.40)` descarta nodos poco relevantes.
+- **Timeout configurable** (`LMSTUDIO_TIMEOUT = 600.0`): aplicado tanto a las llamadas HTTP de embeddings como al cliente `OpenAILike`.
+- **Presentación HTML** (`Presentaciones/presentacion_v3.html`): 16 diapositivas con tema claro que explican el pipeline, la configuración y ejemplos de ejecución reales; navegable con teclado.
+- **Gestión de credenciales con `.env`**: `Aplicaciones/.env` (ignorado por git) y `Aplicaciones/.env.example` (plantilla versionada); `docker-compose.yml` carga las claves automáticamente con `env_file`.
+
+### Añadido (iteración 1)
 - **Soporte Markdown (.md)**: los ficheros `.md` se convierten a texto plano con `pypandoc` y se trocean con el mismo mecanismo que el resto de formatos.
 - **Soporte DokuWiki (.dokuwiki)**: los ficheros DokuWiki se convierten a texto plano con `pypandoc` antes de dividirlos en chunks.
 - **Validación de extensión**: ficheros con extensión no soportada muestran el mensaje `Extensión no soportada: '<ext>'` y se omiten sin error.
@@ -18,14 +34,14 @@ Registro de cambios del proyecto **Agente IA G9** — Sistema RAG con LlamaIndex
 
 ### Cambiado
 - **Lectura de PDFs**: sustituido `SimpleDirectoryReader` por `pypdf.PdfReader` directo, que extrae texto página a página de forma explícita y evita la lectura en binario que producía el dispatcher genérico de LlamaIndex.
-- **Índice vectorial en memoria**: eliminada la persistencia en disco (`StorageContext`, `load_index_from_storage`). El índice se crea en memoria en cada ejecución.
-- **Inserción nodo a nodo con log**: `construir_indice` inserta cada `TextNode` individualmente mostrando su ID, número de palabras y tokens estimados.
-- **Estimación de tokens**: añadida función `_estimar_tokens` (~4 caracteres/token) para mostrar el coste aproximado de cada chunk durante la indexación.
-- **Credenciales por variable de entorno**: `LMSTUDIO_APITOKEN` y `OPENAI_API_KEY` se leen con `os.getenv` en los ficheros versionados para no exponer claves en el repositorio.
+- **Índice vectorial en memoria → persistente**: el índice se construye en memoria la primera vez y se persiste en disco; las ejecuciones siguientes lo cargan directamente.
+- **Inserción nodo a nodo con log**: `construir_indice` y `actualizar_indice` insertan cada `TextNode` individualmente mostrando su ID, número de palabras y tokens estimados.
+- **Estimación de tokens**: función `_estimar_tokens` (~4 caracteres/token) para mostrar el coste aproximado de cada chunk durante la indexación.
+- **Credenciales por variable de entorno**: `LMSTUDIO_APITOKEN` y `OPENAI_API_KEY` se leen con `os.getenv`; en local se usa el fichero `.env`.
 
 ### Infraestructura
 - **Imagen Docker**: cambiada la base de `nvidia/cuda:12.8.1-runtime-ubuntu22.04` (~3 GB) a `python:3.11-slim` (~200 MB). Toda la inferencia es externa, por lo que no se necesita GPU en el contenedor.
-- **Dependencias reducidas**: eliminados `torch`, `torchvision`, `torchaudio`, `transformers`, `sentence-transformers`, `scikit-learn`, `shap`, `matplotlib`, `datasets`, `evaluate`, `einops`, `accelerate`. Añadidos `llama-index-llms-openai` y `llama-index-llms-openai-like`.
+- **Dependencias reducidas**: eliminados `torch`, `torchvision`, `torchaudio`, `transformers`, `sentence-transformers` y otros paquetes ML. Añadidos `llama-index-llms-openai`, `llama-index-llms-openai-like`.
 - **`container_name` fijo**: el contenedor siempre se llama `agente_ia_g9` independientemente de la carpeta desde la que se ejecute `docker compose`.
 - **Volumen adaptado**: la ruta del volumen en `docker-compose.yml` apunta al repositorio real en lugar de `c:\G9-IA\`.
 - **`build` integrado en compose**: el `docker-compose.yml` incluye la directiva `build` para poder hacer `up --build` sin ejecutar `docker build` por separado.
