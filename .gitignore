@@ -1,3 +1,13 @@
 CLAUDE.md
 .claude/
 .env
+
+# Índice vectorial persistido (puede ser grande; se regenera en ejecución)
+Datos/data_storage/*
+!Datos/data_storage/.gitkeep
+
+# Documentos procesados (archivos reales, no código)
+Documentos/*
+!Documentos/.gitkeep
+
+# Presentaciones: se versiona en GitHub

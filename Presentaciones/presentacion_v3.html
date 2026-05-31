@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Agente RAG v3.0 — LM Studio</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #e9ecef;
+    color: #24292f;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .deck { width: 100%; height: 100vh; position: relative; }
+
+  .slide {
+    display: none;
+    position: absolute; inset: 0;
+    padding: 48px 72px 68px;
+    flex-direction: column;
+    justify-content: flex-start;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+  }
+  .slide.active { display: flex; }
+
+  .slide.cover {
+    background: linear-gradient(145deg, #0550ae 0%, #1a3a6c 100%);
+    justify-content: center; align-items: center; text-align: center;
+    color: #fff; border: none;
+  }
+  .slide.cover h1, .slide.cover h2 { color: #fff; border: none; }
+  .slide.cover .subtitle { color: #b3d4ff; }
+
+  h1 { font-size: 2.6rem; font-weight: 800; color: #0550ae; line-height: 1.2; margin-bottom: .4rem; }
+  h2 { font-size: 1.85rem; font-weight: 700; color: #0550ae; margin-bottom: 1.2rem;
+       border-bottom: 2px solid #d0d7de; padding-bottom: .5rem; }
+  h3 { font-size: 1.05rem; font-weight: 600; color: #0550ae; margin-bottom: .5rem; margin-top: 1rem; }
+  .subtitle { font-size: 1.15rem; color: #57606a; margin-top: .5rem; }
+  .tag { display: inline-block; background: #ddf4ff; border: 1px solid #54aeff;
+         border-radius: 20px; padding: 3px 12px; font-size: .8rem; color: #0550ae; margin: 3px; }
+
+  ul { list-style: none; padding: 0; }
+  ul li { padding: .4rem 0 .4rem 1.6rem; position: relative; font-size: 1rem; color: #24292f; line-height: 1.5; }
+  ul li::before { content: "▸"; position: absolute; left: 0; color: #0550ae; }
+  ul.checks li::before { content: "✓"; color: #1a7f37; }
+  ul.small li { font-size: .92rem; }
+
+  .cols { display: grid; gap: 1.5rem; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .box {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: .9rem 1.1rem;
+  }
+  .box.green  { background: #dafbe1; border-color: #2da44e; }
+  .box.blue   { background: #ddf4ff; border-color: #54aeff; }
+  .box.orange { background: #fff1e5; border-color: #d4830f; }
+  .box.red    { background: #ffebe9; border-color: #cf222e; }
+
+  code {
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: .83rem;
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: #953800;
+  }
+
+  .codeblock {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: .9rem 1.1rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: .8rem;
+    line-height: 1.65;
+    overflow: auto;
+    white-space: pre;
+    color: #24292f;
+  }
+
+  /* Terminal mantiene fondo oscuro — contraste intencionado */
+  .term {
+    background: #1c2433;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: .9rem 1.1rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: .76rem;
+    line-height: 1.65;
+    color: #c9d1d9;
+    overflow: auto;
+    white-space: pre;
+  }
+  .term::before {
+    content: "● ● ●";
+    display: block;
+    color: #6e7781;
+    font-size: .65rem;
+    letter-spacing: 4px;
+    margin-bottom: .5rem;
+  }
+  .term .dim  { color: #6e7781; }
+  .term .hi   { color: #e3b341; }
+  .term .err  { color: #f85149; }
+  .term .info { color: #58a6ff; }
+  .term .ok   { color: #3fb950; }
+
+  /* Syntax tokens para codeblock claro */
+  .kw  { color: #cf222e; font-weight: 600; }
+  .str { color: #0550ae; }
+  .cmt { color: #6e7781; font-style: italic; }
+  .num { color: #0550ae; }
+  .fn  { color: #8250df; }
+  .var { color: #953800; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 11px;
+    border-radius: 20px;
+    font-size: .78rem;
+    font-weight: 600;
+  }
+  .badge.green  { background: #dafbe1; color: #1a7f37; border: 1px solid #2da44e; }
+  .badge.blue   { background: #ddf4ff; color: #0550ae; border: 1px solid #54aeff; }
+  .badge.orange { background: #fff1e5; color: #953800; border: 1px solid #d4830f; }
+  .badge.red    { background: #ffebe9; color: #cf222e; border: 1px solid #cf222e; }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin: .8rem 0;
+  }
+  .flow-box {
+    background: #f6f8fa;
+    border: 1.5px solid #0550ae;
+    border-radius: 8px;
+    padding: .45rem .9rem;
+    font-size: .88rem;
+    text-align: center;
+    color: #24292f;
+  }
+  .arrow { color: #0550ae; font-size: 1.3rem; }
+
+  .num-big { font-size: 2.6rem; font-weight: 800; color: #0550ae; }
+  .label   { font-size: .82rem; color: #57606a; }
+
+  /* nav */
+  #nav {
+    position: fixed; bottom: 20px; right: 24px;
+    display: flex; align-items: center; gap: 10px;
+    z-index: 100;
+  }
+  #nav button {
+    background: #0550ae; color: #fff;
+    border: none; border-radius: 8px;
+    padding: 8px 18px; font-size: 1rem; cursor: pointer;
+    transition: background .15s; box-shadow: 0 2px 6px rgba(5,80,174,.3);
+  }
+  #nav button:hover { background: #033d8b; }
+  #counter { color: #57606a; font-size: .88rem; min-width: 60px; text-align: center; }
+
+  #slide-num {
+    position: fixed; top: 14px; right: 22px;
+    color: #b0b8c1; font-size: .78rem;
+  }
+
+  /* heading stripe on cover */
+  .cover-title {
+    font-size: 3.2rem; font-weight: 800; color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,.2);
+    line-height: 1.1; margin-bottom: .4rem;
+  }
+  .cover-sub {
+    font-size: 1.7rem; color: #b3d4ff; margin-bottom: 1.2rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+<!-- ═══════════════════════════════════  1  ═══ -->
+<div class="slide cover active" id="s1">
+  <div>
+    <div class="cover-title">Agente RAG</div>
+    <div class="cover-sub">con LlamaIndex + LM Studio</div>
+    <div class="subtitle">Versión 3.0 — <code style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff">main_lmstudio_v3.0.py</code></div>
+    <div style="margin-top:2rem;display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">Python 3.11</span>
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">Docker</span>
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">LlamaIndex</span>
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">LM Studio</span>
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">RAG</span>
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">Vectores</span>
+    </div>
+    <div style="margin-top:2.5rem;color:#b3d4ff;font-size:.95rem">Universidad de La Laguna — G9</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  2  ═══ -->
+<div class="slide" id="s2">
+  <h2>¿Qué es RAG?</h2>
+  <p style="color:#57606a;margin-bottom:1.2rem">Retrieval-Augmented Generation — el LLM responde <em>solo</em> con información de tus documentos</p>
+
+  <div class="flow" style="margin:1.2rem 0 .8rem">
+    <div class="flow-box" style="border-color:#d4830f;background:#fff1e5">📄 Documentos<br><small style="color:#57606a">PDF · DokuWiki · MD</small></div>
+    <span class="arrow">→</span>
+    <div class="flow-box" style="border-color:#d4830f;background:#fff1e5">✂️ Troceado<br><small style="color:#57606a">chunks</small></div>
+    <span class="arrow">→</span>
+    <div class="flow-box" style="border-color:#54aeff;background:#ddf4ff">🔢 Embeddings<br><small style="color:#57606a">vectores numéricos</small></div>
+    <span class="arrow">→</span>
+    <div class="flow-box" style="border-color:#54aeff;background:#ddf4ff">🗄️ Índice vectorial<br><small style="color:#57606a">data_storage/</small></div>
+  </div>
+  <div class="flow" style="margin:0 0 1.2rem">
+    <div class="flow-box" style="border-color:#2da44e;background:#dafbe1">❓ Pregunta<br><small style="color:#57606a">del usuario</small></div>
+    <span class="arrow">→</span>
+    <div class="flow-box" style="border-color:#2da44e;background:#dafbe1">🔍 Retrieval<br><small style="color:#57606a">trozos relevantes</small></div>
+    <span class="arrow">→</span>
+    <div class="flow-box" style="border-color:#2da44e;background:#dafbe1">🤖 LLM<br><small style="color:#57606a">qwen3.5-9b</small></div>
+    <span class="arrow">→</span>
+    <div class="flow-box" style="border-color:#2da44e;background:#dafbe1">💬 Respuesta<br><small style="color:#57606a">con fuentes</small></div>
+  </div>
+
+  <div class="cols cols-2">
+    <div class="box green">
+      <h3 style="margin-top:0;color:#1a7f37">Ventaja clave</h3>
+      El LLM no necesita "saber" el contenido de antemano.<br>Los documentos se actualizan sin reentrenar el modelo.
+    </div>
+    <div class="box blue">
+      <h3 style="margin-top:0">En este sistema</h3>
+      Toda la inferencia es <strong>externa</strong> al contenedor.<br>El servidor LM Studio está en <code>openai.ull.es:8080</code>.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  3  ═══ -->
+<div class="slide" id="s3">
+  <h2>Arquitectura del sistema</h2>
+
+  <div class="cols cols-3" style="margin-bottom:1.2rem">
+    <div class="box blue">
+      <h3 style="margin-top:0">🐳 Docker</h3>
+      <ul class="small">
+        <li>Imagen <code>python:3.11-slim</code></li>
+        <li>Sin GPU — inferencia remota</li>
+        <li>Volumen monta el repo como <code>/app</code></li>
+        <li><code>env_file: .env</code> inyecta claves</li>
+      </ul>
+    </div>
+    <div class="box orange">
+      <h3 style="margin-top:0">📁 Sistema de ficheros</h3>
+      <ul class="small">
+        <li><code>Nuevos documentos/</code> — entrada</li>
+        <li><code>Documentos/</code> — procesados</li>
+        <li><code>Datos/indice.xlsx</code> — metadatos</li>
+        <li><code>Datos/data_storage/</code> — índice</li>
+      </ul>
+    </div>
+    <div class="box green">
+      <h3 style="margin-top:0">🤖 LM Studio Server</h3>
+      <ul class="small">
+        <li>API compatible con OpenAI</li>
+        <li>LLM: <code>qwen3.5-9b</code></li>
+        <li>Embeddings: <code>qwen3-embedding-0.6b</code></li>
+        <li>Timeout configurable: 600 s</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="codeblock"><span class="cmt"># Construir imagen y arrancar el contenedor</span>
+docker compose -f Aplicaciones/docker-compose.yml up -d --build
+
+<span class="cmt"># Ejecutar el agente</span>
+docker exec -it agente_ia_g9 python3 /app/Aplicaciones/main_lmstudio_v3.0.py</div>
+</div>
+
+<!-- ═══════════════════════════════════  4  ═══ -->
+<div class="slide" id="s4">
+  <h2>Variables de configuración</h2>
+  <p style="color:#57606a;margin-bottom:1rem">Toda la personalización está al principio del fichero, agrupada por bloque</p>
+
+  <div class="codeblock"><span class="cmt"># ── Rutas ──────────────────────────────────────────────────</span>
+<span class="var">FICHERO_INDICE</span>                = <span class="str">"/app/Datos/indice.xlsx"</span>
+<span class="var">CARPETA_ENTRADA_DOCUMENTOS</span>    = <span class="str">"/app/Nuevos documentos/"</span>
+<span class="var">CARPETA_DOCUMENTOS_PROCESADOS</span> = <span class="str">"/app/Documentos/"</span>
+<span class="var">CARPETA_DATOS_SALVADOS</span>        = <span class="str">"/app/Datos/data_storage/"</span>
+
+<span class="cmt"># ── Servidor LM Studio ─────────────────────────────────────</span>
+<span class="var">SERVIDOR_LMSTUDIO</span> = <span class="str">"http://openai.ull.es:8080/v1"</span>
+<span class="var">LMSTUDIO_TIMEOUT</span>  = <span class="num">600.0</span>           <span class="cmt"># segundos de espera máxima</span>
+<span class="var">MODELO_LLM</span>        = <span class="str">"qwen/qwen3.5-9b"</span>
+<span class="var">MODELO_EMBEDDINGS</span> = <span class="str">"text-embedding-qwen3-embedding-0.6b"</span>
+
+<span class="cmt"># ── Troceado ───────────────────────────────────────────────</span>
+<span class="var">MODO_TROCEADO</span>                 = <span class="str">"semantico"</span>   <span class="cmt"># "fijo" | "semantico"</span>
+<span class="var">UMBRAL_MAXIMO_PALABRAS</span>        = <span class="num">3000</span>           <span class="cmt"># solo en modo fijo</span>
+<span class="var">UMBRAL_VISUALIZACION_PALABRAS</span> = <span class="num">30</span>             <span class="cmt"># trozos cortos → eliminados</span>
+
+<span class="cmt"># ── Retriever y filtrado ────────────────────────────────────</span>
+<span class="var">FILTRO_ESTADO</span>          = <span class="str">"Vigente"</span>
+<span class="var">RETRIEVER_TOP_K</span>        = <span class="num">4</span>
+<span class="var">RETRIEVER_SCORE_MINIMO</span> = <span class="num">0.40</span></div>
+</div>
+
+<!-- ═══════════════════════════════════  5  ═══ -->
+<div class="slide" id="s5">
+  <h2>Flujo principal — <code>main()</code></h2>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <div class="codeblock" style="font-size:.75rem"><span class="kw">def</span> <span class="fn">main</span>():
+    configurar_modelos()
+
+    listado = leer_archivos_carpeta(...)
+
+    <span class="kw">if</span> listado:                         <span class="cmt"># hay ficheros nuevos</span>
+        nodes = digitaliza_documentos(...)
+
+        <span class="kw">if</span> nodes:
+            <span class="kw">if</span> _indice_existe():
+                index = actualizar_indice(
+                    cargar_indice(), nodes)
+            <span class="kw">else</span>:
+                index = construir_indice(nodes)
+        <span class="kw">elif</span> _indice_existe():
+            index = cargar_indice()
+        <span class="kw">else</span>:
+            <span class="kw">return</span>  <span class="cmt"># nada que hacer</span>
+    <span class="kw">else</span>:                               <span class="cmt"># sin ficheros nuevos</span>
+        <span class="kw">if not</span> _indice_existe():
+            <span class="kw">return</span>
+        index = cargar_indice()
+
+    mostrar_reporte_indice(index)
+    chatear(index, preguntas)</div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Los 5 escenarios</h3>
+      <ul class="small">
+        <li><span class="badge green">A</span> Docs nuevos + sin índice → <strong>construir</strong></li>
+        <li><span class="badge blue">B</span> Docs nuevos + índice previo → <strong>cargar + actualizar</strong></li>
+        <li><span class="badge orange">C</span> Docs sin nodos + índice previo → <strong>cargar</strong></li>
+        <li><span class="badge orange">D</span> Sin docs + índice previo → <strong>cargar</strong></li>
+        <li><span class="badge red">E</span> Sin docs + sin índice → <strong>salir</strong></li>
+      </ul>
+      <div class="box" style="margin-top:1rem;font-size:.9rem">
+        El script es <strong>idempotente</strong>:<br>
+        si no hay trabajo nuevo simplemente carga el índice y responde.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  6  ═══ -->
+<div class="slide" id="s6">
+  <h2>Formatos de documentos soportados</h2>
+  <p style="color:#57606a;margin-bottom:1.2rem">Patrón <em>dispatcher</em> — añadir un nuevo formato solo requiere una función y un <code>elif</code></p>
+
+  <div class="cols cols-3" style="margin-bottom:1.2rem">
+    <div class="box blue">
+      <h3 style="margin-top:0">📄 PDF</h3>
+      Librería: <code>pypdf.PdfReader</code><br>
+      Extrae texto página a página.<br>
+      En modo semántico: concatena todo el documento antes de dividir.
+    </div>
+    <div class="box orange">
+      <h3 style="margin-top:0">📝 DokuWiki</h3>
+      Extensión: <code>.dokuwiki</code><br>
+      Convierte con <code>pypandoc</code> a texto plano.<br>
+      Formato nativo de la Wiki del STIC.
+    </div>
+    <div class="box green">
+      <h3 style="margin-top:0">📋 Markdown</h3>
+      Extensión: <code>.md</code><br>
+      Convierte con <code>pypandoc</code> a texto plano.<br>
+      Mismo núcleo que DokuWiki.
+    </div>
+  </div>
+
+  <div class="codeblock"><span class="kw">def</span> <span class="fn">digitaliza_un_documento</span>(documento, fila_indice):
+    ext = documento[<span class="str">"extension"</span>].lower()
+    <span class="kw">if</span>   ext == <span class="str">"pdf"</span>:      <span class="kw">return</span> <span class="fn">_digitaliza_pdf</span>(documento, fila_indice)
+    <span class="kw">elif</span> ext == <span class="str">"dokuwiki"</span>: <span class="kw">return</span> <span class="fn">_digitaliza_dokuwiki</span>(documento, fila_indice)
+    <span class="kw">elif</span> ext == <span class="str">"md"</span>:       <span class="kw">return</span> <span class="fn">_digitaliza_markdown</span>(documento, fila_indice)
+    <span class="kw">else</span>: print(<span class="str">f"  Extensión no soportada: '{ext}'"</span>); <span class="kw">return</span> []</div>
+
+  <div style="margin-top:.8rem;font-size:.88rem;color:#57606a">
+    Los documentos no registrados en <code>indice.xlsx</code> se omiten y permanecen en <code>Nuevos documentos/</code>.<br>
+    Los procesados se mueven automáticamente a <code>Documentos/</code>.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  7  ═══ -->
+<div class="slide" id="s7">
+  <h2>Troceado fijo vs semántico</h2>
+
+  <div class="cols cols-2" style="gap:1.5rem;margin-bottom:1rem">
+    <div class="box orange">
+      <h3 style="margin-top:0;color:#953800">Modo fijo</h3>
+      <code>MODO_TROCEADO = "fijo"</code>
+      <ul class="small" style="margin-top:.6rem">
+        <li>Ventana de <strong>3000 palabras</strong> con solapamiento de 50</li>
+        <li>Divide por página en PDFs</li>
+        <li>Tamaño predecible y uniforme</li>
+        <li>Puede cortar a mitad de frase</li>
+      </ul>
+    </div>
+    <div class="box blue">
+      <h3 style="margin-top:0">Modo semántico</h3>
+      <code>MODO_TROCEADO = "semantico"</code>
+      <ul class="small" style="margin-top:.6rem">
+        <li><code>SemanticSplitterNodeParser</code> de LlamaIndex</li>
+        <li>Usa el modelo de embeddings para detectar cambios de tema</li>
+        <li>Trozos más coherentes semánticamente</li>
+        <li>Más lento (llama al servidor para cada documento)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cols cols-2">
+    <div>
+      <div style="color:#57606a;font-size:.83rem;margin-bottom:.3rem">Resultado modo fijo — mismos documentos</div>
+      <div class="term"><span class="ok">Nodos generados: 69</span>
+<span class="dim">Trozos de tamaño uniforme ~300 palabras
+14 trozos "cortos" de basura tipográfica:
+  ñ é Ó • • • •</span></div>
+    </div>
+    <div>
+      <div style="color:#57606a;font-size:.83rem;margin-bottom:.3rem">Resultado modo semántico</div>
+      <div class="term"><span class="ok">Nodos generados: 37</span>
+<span class="dim">Trozos de tamaño variable (34–1193 palabras)
+Solo 3 trozos cortos eliminados
+→ secciones temáticas completas</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  8  ═══ -->
+<div class="slide" id="s8">
+  <h2>Filtrado de trozos cortos</h2>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <h3 style="margin-top:0">El problema</h3>
+      <p style="font-size:.93rem;color:#57606a;margin-bottom:.8rem">
+        Algunos PDFs mal formateados generan trozos con ruido tipográfico:
+      </p>
+      <div class="term"><span class="err">[TROZO CORTO] 2025-01-3 (2 palabras): 'ñ é'</span>
+<span class="err">[TROZO CORTO] 2025-01-9 (1 palabras): 'ñ'</span>
+<span class="err">[TROZO CORTO] 2025-01-4 (8 palabras):</span>
+<span class="err">  '• • • • • • • •'</span></div>
+      <p style="font-size:.85rem;color:#57606a;margin-top:.8rem">
+        Indexar esto contamina el espacio vectorial con ruido.
+      </p>
+    </div>
+    <div>
+      <h3 style="margin-top:0">La solución</h3>
+      <div class="codeblock" style="font-size:.78rem"><span class="var">UMBRAL_VISUALIZACION_PALABRAS</span> = <span class="num">30</span>
+
+<span class="kw">def</span> <span class="fn">_filtrar_trozos_cortos</span>(resultado):
+    <span class="kw">for</span> i, item <span class="kw">in</span> enumerate(resultado):
+        n = len(item[<span class="str">"texto"</span>].split())
+        es_ultimo = (i == len(resultado) - <span class="num">1</span>)
+        <span class="kw">if</span> n &lt; UMBRAL <span class="kw">and not</span> es_ultimo:
+            print(<span class="str">"[TROZO CORTO ELIMINADO]"</span>, ...)
+            <span class="kw">continue</span>   <span class="cmt"># descartado</span>
+        filtrados.append(item)</div>
+      <div class="box green" style="margin-top:.8rem;font-size:.9rem">
+        <strong>Regla de oro:</strong> el último trozo siempre se conserva — es el cierre natural del documento, aunque sea breve.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  9  ═══ -->
+<div class="slide" id="s9">
+  <h2>Embeddings e índice vectorial</h2>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <h3 style="margin-top:0">¿Qué es un embedding?</h3>
+      <p style="font-size:.92rem;color:#57606a;margin-bottom:.8rem">
+        Una representación numérica de texto: frases con significado similar quedan cerca en el espacio vectorial.
+      </p>
+      <div class="box" style="font-size:.85rem">
+        <code style="background:none;border:none;color:#953800">"vacaciones PTGAS 2026"</code><br>
+        <span style="color:#57606a">↓ texto → vector de N dimensiones</span><br>
+        <code style="background:none;border:none;color:#0550ae">[0.12, -0.34, 0.89, ...]</code>
+      </div>
+      <h3>Clase <code>LMStudioEmbedding</code></h3>
+      <ul class="small">
+        <li>Hereda de <code>BaseEmbedding</code> de LlamaIndex</li>
+        <li>Llama a <code>/v1/embeddings</code> vía HTTP REST</li>
+        <li>Token de autorización + timeout de 600 s</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Inserción nodo a nodo con log</h3>
+      <div class="term"><span class="info">Creando índice (37 nodos)...</span>
+<span class="ok">  [  1/37] 2026-02-0 — 255 palabras, ~459 tokens</span>
+<span class="ok">  [  2/37] 2026-02-1 —   9 palabras,  ~20 tokens</span>
+<span class="ok">  [  3/37] 2026-03-0 — 173 palabras, ~281 tokens</span>
+  ...
+<span class="ok">  [37/37] 2026-01-14 — 874 palabras, ~1387 tokens</span>
+<span class="info">Índice creado y persistido.</span></div>
+      <div style="font-size:.82rem;color:#57606a;margin-top:.6rem">
+        Cada nodo tiene ID único (<code>Identificador-N</code>),<br>
+        número de palabras y tokens estimados (~4 chars/token).
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  10  ═══ -->
+<div class="slide" id="s10">
+  <h2>Persistencia del índice</h2>
+  <p style="color:#57606a;margin-bottom:1rem">El índice se guarda en disco para no recalcular embeddings en cada ejecución</p>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <h3 style="margin-top:0">Ficheros generados en <code>data_storage/</code></h3>
+      <ul class="small">
+        <li><code>docstore.json</code> — nodos con texto y metadatos</li>
+        <li><code>index_store.json</code> — estructura del índice vectorial</li>
+        <li><code>vector_store.json</code> — vectores (embeddings)</li>
+        <li><code>graph_store.json</code> — relaciones entre nodos</li>
+      </ul>
+      <div class="box red" style="margin-top:1rem;font-size:.88rem">
+        Para forzar una reconstrucción completa:<br>
+        borrar el contenido de <code>Datos/data_storage/</code>
+      </div>
+    </div>
+    <div>
+      <div class="codeblock" style="font-size:.78rem"><span class="cmt"># Guardar tras construir o actualizar</span>
+index.storage_context.persist(
+    persist_dir=<span class="var">CARPETA_DATOS_SALVADOS</span>)
+
+<span class="cmt"># Cargar desde disco</span>
+storage_context = <span class="fn">StorageContext</span>.from_defaults(
+    persist_dir=<span class="var">CARPETA_DATOS_SALVADOS</span>)
+index = <span class="fn">load_index_from_storage</span>(storage_context)
+
+<span class="cmt"># Detectar si existe el índice</span>
+<span class="kw">def</span> <span class="fn">_indice_existe</span>():
+    <span class="kw">return</span> os.path.isfile(
+        <span class="var">CARPETA_DATOS_SALVADOS</span> + <span class="str">"docstore.json"</span>)</div>
+      <div class="term" style="margin-top:.8rem"><span class="info">Cargando índice desde '/app/Datos/data_storage/'...</span>
+<span class="ok">Índice cargado desde disco.</span>
+<span class="dim"># Sin digitalizar · sin embeddings → instantáneo</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  11  ═══ -->
+<div class="slide" id="s11">
+  <h2>Ejecución diaria — ciclo completo</h2>
+
+  <div class="term" style="font-size:.72rem">Archivos encontrados en '/app/Nuevos documentos/': 8
+
+  <span class="hi">Digitalizando (PDF)      : 008 [GLPI] Gestión de tickets...</span>
+  <span class="ok">Movido → Documentos/: 008 [GLPI] Gestión de tickets...</span>
+  <span class="hi">Digitalizando (DokuWiki) : 082 [Contrato Menor]...</span>
+  <span class="ok">Movido → Documentos/: 082 [Contrato Menor]...</span>
+  <span class="err">'082 [...].pdf' no aparece en el índice — permanece en Nuevos documentos.</span>
+  <span class="hi">Digitalizando (PDF)      : Instrucción vacaciones PTGAS 2025.pdf</span>
+  <span class="err">  [TROZO CORTO ELIMINADO] 2024-01-5 (1 palabras): '5.2.3. '</span>
+  <span class="ok">Movido → Documentos/: Instrucción vacaciones PTGAS 2025.pdf</span>
+
+Nodos generados: 37
+
+<span class="info">Cargando índice desde '/app/Datos/data_storage/'...</span>
+<span class="ok">Índice cargado desde disco.</span>
+<span class="info">Añadiendo 37 nodo(s) al índice existente...</span>
+<span class="ok">Índice actualizado en '/app/Datos/data_storage/'.</span></div>
+
+  <div class="cols cols-3" style="margin-top:.8rem">
+    <div class="box green" style="font-size:.85rem;text-align:center">
+      <strong>✓ Procesados</strong><br>movidos a <code>Documentos/</code>
+    </div>
+    <div class="box red" style="font-size:.85rem;text-align:center">
+      <strong>✗ Sin registro</strong><br>permanecen en <code>Nuevos documentos/</code>
+    </div>
+    <div class="box blue" style="font-size:.85rem;text-align:center">
+      <strong>↑ Actualizado</strong><br>índice persistido de nuevo
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  12  ═══ -->
+<div class="slide" id="s12">
+  <h2>Reporte del índice</h2>
+  <p style="color:#57606a;margin-bottom:1rem">Se muestra siempre antes del chat — permite ver el estado del conocimiento disponible</p>
+
+  <div class="term">══════════════════════════════════════════════════════════════════════════════
+  ÍNDICE — <span class="ok">37 trozos</span> en <span class="ok">6 documento(s)</span>
+                                                    Trozos  Palabras  ~Tokens
+  ────────────────────────────────────────────────       ─         ─        ─
+  <span class="hi">008 [GLPI] Gestión de tickets, proyectos y tare…</span>       <span class="ok">2</span>       264      479
+  <span class="hi">082 [Contrato Menor] Proceso de Contratación Me…</span>       <span class="ok">5</span>      1197     1836
+  <span class="hi">083 [TCS Rediris] Servicio de obtención de cert…</span>       <span class="ok">2</span>       321      617
+  <span class="hi">Instrucción de vacaciones y permisos PTGAS 2024…</span>       <span class="ok">1</span>       161      113
+  <span class="hi">Instrucción de vacaciones y permisos PTGAS 2025…</span>      <span class="ok">13</span>      7293    11397
+  <span class="hi">Instrucción de vacaciones y permisos PTGAS 2026…</span>      <span class="ok">14</span>      7659    12014
+  ────────────────────────────────────────────────       ─         ─        ─
+  <span class="info">TOTAL</span>                                                 <span class="ok">37</span>     16895    26456
+══════════════════════════════════════════════════════════════════════════════</div>
+
+  <div style="margin-top:.8rem;font-size:.88rem;color:#57606a">
+    Los tokens estimados (~4 chars/token) dan una idea del volumen de información indexada.<br>
+    Las instrucciones de vacaciones 2025/2026 concentran ~24 000 tokens combinados.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  13  ═══ -->
+<div class="slide" id="s13">
+  <h2>Retriever — filtros y control de calidad</h2>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <h3 style="margin-top:0">Tres capas de filtrado</h3>
+      <div class="flow" style="flex-direction:column;align-items:flex-start;gap:.5rem">
+        <div class="flow-box" style="border-color:#d4830f;background:#fff1e5;width:100%">
+          <strong>1. MetadataFilter</strong> — Estado = "Vigente"<br>
+          <small style="color:#57606a">Excluye documentos obsoletos antes de buscar</small>
+        </div>
+        <div class="arrow" style="margin-left:1rem">↓</div>
+        <div class="flow-box" style="border-color:#54aeff;background:#ddf4ff;width:100%">
+          <strong>2. similarity_top_k = 4</strong><br>
+          <small style="color:#57606a">El retriever devuelve como máximo 4 nodos</small>
+        </div>
+        <div class="arrow" style="margin-left:1rem">↓</div>
+        <div class="flow-box" style="border-color:#2da44e;background:#dafbe1;width:100%">
+          <strong>3. SimilarityPostprocessor (≥ 0.40)</strong><br>
+          <small style="color:#57606a">Descarta nodos poco relevantes → 0–4 nodos finales</small>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="codeblock" style="font-size:.76rem"><span class="fn">MetadataFilters</span>(filters=[
+    <span class="fn">ExactMatchFilter</span>(key=<span class="str">"Estado"</span>,
+                     value=<span class="var">FILTRO_ESTADO</span>)
+])
+
+index.as_chat_engine(
+    chat_mode=<span class="str">"context"</span>,
+    similarity_top_k=<span class="var">RETRIEVER_TOP_K</span>,
+    filters=filtros,
+    node_postprocessors=[
+        <span class="fn">SimilarityPostprocessor</span>(
+            similarity_cutoff=<span class="var">RETRIEVER_SCORE_MINIMO</span>)
+    ],
+    system_prompt=<span class="str">"..."</span>,
+)</div>
+      <div class="box" style="margin-top:.8rem;font-size:.85rem">
+        <strong>Score = similitud coseno</strong> entre el embedding de la pregunta y el del trozo.<br>
+        <span style="color:#57606a">0 = sin relación &nbsp;·&nbsp; 1 = idénticos</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  14  ═══ -->
+<div class="slide" id="s14">
+  <h2>Ejemplo de consulta y respuesta</h2>
+
+  <div class="term" style="font-size:.72rem">────────────────────────────────────────────────────────────
+Pregunta: <span class="hi">¿Cuáles son los días entre festivos del 2026?</span>
+
+Respuesta:
+Según la documentación, para el año 2026 el PTGAS podrá disfrutar:
+
+  <span class="ok">30 de abril de 2026</span>
+  <span class="ok"> 4 de mayo  de 2026</span>  — Solo Centros de La Laguna
+  <span class="ok"> 5 de mayo  de 2026</span>  — Solo Centros de Santa Cruz
+  <span class="ok">29 de mayo  de 2026</span>
+  <span class="ok"> 1 de junio de 2026</span>
+  <span class="ok"> 9 de octubre de 2026</span>
+  <span class="ok">13 de octubre de 2026</span>
+  <span class="ok"> 4 de diciembre de 2026</span>
+  <span class="ok"> 7 de diciembre de 2026</span>
+
+Fuentes consultadas:
+  <span class="info">1. score=0.4537 | Instrucción de vacaciones y permisos PTGAS 2026.pdf</span>
+  <span class="info">2. score=0.4158 | Instrucción de vacaciones y permisos PTGAS 2026.pdf</span></div>
+
+  <div class="cols cols-3" style="margin-top:.8rem">
+    <div class="box" style="font-size:.82rem;text-align:center">Score <strong>0.45</strong> y <strong>0.42</strong><br><span style="color:#57606a">por encima del umbral 0.40</span></div>
+    <div class="box blue" style="font-size:.82rem;text-align:center">Respuesta basada<br><strong>solo en los documentos</strong></div>
+    <div class="box green" style="font-size:.82rem;text-align:center">Fuente citada<br><strong>con nombre de fichero</strong></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  15  ═══ -->
+<div class="slide" id="s15">
+  <h2>Estructura de carpetas del proyecto</h2>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div class="codeblock" style="font-size:.82rem">agente_ia_g9/
+├── Aplicaciones/
+│   ├── Dockerfile              <span class="cmt">← imagen python:3.11-slim</span>
+│   ├── docker-compose.yml      <span class="cmt">← monta repo como /app</span>
+│   ├── .env                    <span class="cmt">← claves API (no en git)</span>
+│   ├── .env.example            <span class="cmt">← plantilla (sí en git)</span>
+│   └── main_lmstudio_v3.0.py  <span class="cmt">← script principal</span>
+│
+├── Datos/
+│   ├── indice.xlsx             <span class="cmt">← registro de documentos</span>
+│   └── data_storage/           <span class="cmt">← índice vectorial (no en git)</span>
+│
+├── Nuevos documentos/          <span class="cmt">← DROP ZONE de entrada</span>
+├── Documentos/                 <span class="cmt">← archivo (no en git)</span>
+├── Presentaciones/             <span class="cmt">← material docente</span>
+└── README.md</div>
+    <div>
+      <h3 style="margin-top:0">Qué sube a GitHub</h3>
+      <ul class="checks small">
+        <li>Todo el código Python</li>
+        <li>Dockerfile y docker-compose.yml</li>
+        <li><code>.env.example</code> (sin claves reales)</li>
+        <li>README, CHANGELOG y Presentaciones</li>
+        <li>Carpetas vacías con <code>.gitkeep</code></li>
+      </ul>
+      <h3>Qué NO sube</h3>
+      <ul class="small">
+        <li style="color:#cf222e">→ <code>.env</code> — contiene claves API</li>
+        <li style="color:#cf222e">→ <code>Datos/data_storage/*</code> — vectores</li>
+        <li style="color:#cf222e">→ <code>Documentos/*</code> — documentos reales</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  16  ═══ -->
+<div class="slide cover" id="s16">
+  <div>
+    <div style="font-size:1.8rem;font-weight:700;color:#b3d4ff;margin-bottom:1.2rem">Resumen del flujo completo</div>
+
+    <div class="flow" style="justify-content:center;flex-wrap:wrap;gap:.7rem;margin:1.2rem 0">
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">📄 Nuevos<br>documentos</div>
+      <span class="arrow" style="color:#b3d4ff">→</span>
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">✂️ Digitalizar<br><small style="color:#b3d4ff">PDF/DokuWiki/MD</small></div>
+      <span class="arrow" style="color:#b3d4ff">→</span>
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">🔢 Embeddings<br><small style="color:#b3d4ff">semánticos</small></div>
+      <span class="arrow" style="color:#b3d4ff">→</span>
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">🗄️ Persistir<br><small style="color:#b3d4ff">data_storage/</small></div>
+      <span class="arrow" style="color:#b3d4ff">→</span>
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">🔍 Retriever<br><small style="color:#b3d4ff">Vigente·top4·0.40</small></div>
+      <span class="arrow" style="color:#b3d4ff">→</span>
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">🤖 LLM<br><small style="color:#b3d4ff">qwen3.5-9b</small></div>
+      <span class="arrow" style="color:#b3d4ff">→</span>
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">💬 Respuesta<br><small style="color:#b3d4ff">con fuentes</small></div>
+    </div>
+
+    <div style="display:flex;gap:1.2rem;justify-content:center;margin-top:1.5rem">
+      <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:.8rem 1.6rem;text-align:center">
+        <div style="font-size:2.2rem;font-weight:800;color:#fff">v3.0</div>
+        <div style="color:#b3d4ff;font-size:.82rem">versión actual</div>
+      </div>
+      <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:.8rem 1.6rem;text-align:center">
+        <div style="font-size:2.2rem;font-weight:800;color:#fff">3</div>
+        <div style="color:#b3d4ff;font-size:.82rem">formatos de doc</div>
+      </div>
+      <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:.8rem 1.6rem;text-align:center">
+        <div style="font-size:2.2rem;font-weight:800;color:#fff">5</div>
+        <div style="color:#b3d4ff;font-size:.82rem">escenarios cubiertos</div>
+      </div>
+    </div>
+
+    <div style="margin-top:2rem;color:#b3d4ff;font-size:.92rem">
+      Repositorio: <code style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff;border-radius:4px;padding:2px 8px">github.com/jgonzal-ull/agente_ia_g9</code>
+    </div>
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<div id="slide-num"></div>
+
+<div id="nav">
+  <button onclick="go(-1)">◀</button>
+  <span id="counter">1 / 16</span>
+  <button onclick="go(1)">▶</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    document.getElementById('counter').textContent = (cur + 1) + ' / ' + slides.length;
+    document.getElementById('slide-num').textContent = (cur + 1) + ' / ' + slides.length;
+  }
+
+  function go(d) { show(cur + d); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  go(-1);
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End')  show(slides.length - 1);
+  });
+
+  show(0);
+</script>
+</body>
+</html>
