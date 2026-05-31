@@ -32,34 +32,6 @@ Registro de cambios del proyecto **Agente IA G9** — Sistema RAG con LlamaIndex
 
 ---
 
-## [4.0] — main_v4.0.py
-
-### Añadido
-- **Bot de Telegram**: integración con `python-telegram-bot`; el bot responde mensajes de texto usando el chat engine RAG.
-- **Lista blanca de usuarios**: solo los `chat_id` incluidos en `lista_blanca` reciben respuestas del agente.
-- **Comando `/start`**: mensaje de bienvenida al iniciar conversación con el bot.
-
-### Cambiado
-- El bot está desactivado por defecto (bloque `Application` comentado en `main()`); se activa descomentando las líneas correspondientes.
-
----
-
-## [3.0] — main_v3.0.py
-
-### Añadido
-- **Persistencia del índice**: el `VectorStoreIndex` se guarda en disco (`Datos/data_storage/`) y se reutiliza entre ejecuciones.
-- **Soporte DokuWiki**: los ficheros `.dokuwiki` se convierten con `pypandoc` y se trocean con `SemanticSplitterNodeParser`.
-- **Filtros de metadatos**: posibilidad de filtrar por campo `Estado` del índice documental.
-- **Función `actualizar_metadato_en_store`**: permite modificar metadatos de nodos ya indexados sin reindexar.
-- **Refactorización en funciones**: el código se organiza en funciones reutilizables (`load_llm`, `load_index`, `create_or_add_index`, `chatear_simple`).
-
-### Cambiado
-- **Chunking por palabras con solapamiento** (`split_text_with_overlap`): reemplaza la división por páginas de la v1.
-- **Embedding personalizado** (`LMStudioEmbedding`): clase propia que llama al endpoint REST `/embeddings` del servidor LM Studio mediante `requests`.
-- **LLM vía `OpenAILike`**: en lugar del SDK nativo de LM Studio se usa el adaptador compatible con la API OpenAI de LlamaIndex.
-
----
-
 ## [1.0] — main.py
 
 ### Añadido
