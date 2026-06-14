@@ -222,7 +222,7 @@
     <span class="arrow">→</span>
     <div class="flow-box" style="border-color:#54aeff;background:#ddf4ff">🔢 Embeddings<br><small style="color:#57606a">vectores numéricos</small></div>
     <span class="arrow">→</span>
-    <div class="flow-box" style="border-color:#54aeff;background:#ddf4ff">🗄️ Índice vectorial<br><small style="color:#57606a">data_storage/</small></div>
+    <div class="flow-box" style="border-color:#54aeff;background:#ddf4ff">🗄️ Índice vectorial<br><small style="color:#57606a">data_storage_lmstudio/</small></div>
   </div>
   <div class="flow" style="margin:0 0 1.2rem">
     <div class="flow-box" style="border-color:#2da44e;background:#dafbe1">❓ Pregunta<br><small style="color:#57606a">del usuario</small></div>
@@ -266,7 +266,7 @@
         <li><code>Nuevos documentos/</code> — entrada</li>
         <li><code>Documentos/</code> — procesados</li>
         <li><code>Datos/indice.xlsx</code> — metadatos</li>
-        <li><code>Datos/data_storage/</code> — índice</li>
+        <li><code>Datos/data_storage_lmstudio/</code> — índice</li>
       </ul>
     </div>
     <div class="box green">
@@ -296,7 +296,7 @@ docker exec -it agente_ia_g9 python3 /app/Aplicaciones/main_lmstudio_v3.0.py</di
 <span class="var">FICHERO_INDICE</span>                = <span class="str">"/app/Datos/indice.xlsx"</span>
 <span class="var">CARPETA_ENTRADA_DOCUMENTOS</span>    = <span class="str">"/app/Nuevos documentos/"</span>
 <span class="var">CARPETA_DOCUMENTOS_PROCESADOS</span> = <span class="str">"/app/Documentos/"</span>
-<span class="var">CARPETA_DATOS_SALVADOS</span>        = <span class="str">"/app/Datos/data_storage/"</span>
+<span class="var">CARPETA_DATOS_SALVADOS</span>        = <span class="str">"/app/Datos/data_storage_lmstudio/"</span>
 
 <span class="cmt"># ── Servidor LM Studio ─────────────────────────────────────</span>
 <span class="var">SERVIDOR_LMSTUDIO</span> = <span class="str">"http://openai.ull.es:8080/v1"</span>
@@ -531,7 +531,7 @@ Solo 3 trozos cortos eliminados
 
   <div class="cols cols-2" style="gap:1.5rem">
     <div>
-      <h3 style="margin-top:0">Ficheros generados en <code>data_storage/</code></h3>
+      <h3 style="margin-top:0">Ficheros generados en <code>data_storage_lmstudio/</code></h3>
       <ul class="small">
         <li><code>docstore.json</code> — nodos con texto y metadatos</li>
         <li><code>index_store.json</code> — estructura del índice vectorial</li>
@@ -540,7 +540,7 @@ Solo 3 trozos cortos eliminados
       </ul>
       <div class="box red" style="margin-top:1rem;font-size:.88rem">
         Para forzar una reconstrucción completa:<br>
-        borrar el contenido de <code>Datos/data_storage/</code>
+        borrar el contenido de <code>Datos/data_storage_lmstudio/</code>
       </div>
     </div>
     <div>
@@ -557,7 +557,7 @@ index = <span class="fn">load_index_from_storage</span>(storage_context)
 <span class="kw">def</span> <span class="fn">_indice_existe</span>():
     <span class="kw">return</span> os.path.isfile(
         <span class="var">CARPETA_DATOS_SALVADOS</span> + <span class="str">"docstore.json"</span>)</div>
-      <div class="term" style="margin-top:.8rem"><span class="info">Cargando índice desde '/app/Datos/data_storage/'...</span>
+      <div class="term" style="margin-top:.8rem"><span class="info">Cargando índice desde '/app/Datos/data_storage_lmstudio/'...</span>
 <span class="ok">Índice cargado desde disco.</span>
 <span class="dim"># Sin digitalizar · sin embeddings → instantáneo</span></div>
     </div>
@@ -581,10 +581,10 @@ index = <span class="fn">load_index_from_storage</span>(storage_context)
 
 Nodos generados: 37
 
-<span class="info">Cargando índice desde '/app/Datos/data_storage/'...</span>
+<span class="info">Cargando índice desde '/app/Datos/data_storage_lmstudio/'...</span>
 <span class="ok">Índice cargado desde disco.</span>
 <span class="info">Añadiendo 37 nodo(s) al índice existente...</span>
-<span class="ok">Índice actualizado en '/app/Datos/data_storage/'.</span></div>
+<span class="ok">Índice actualizado en '/app/Datos/data_storage_lmstudio/'.</span></div>
 
   <div class="cols cols-3" style="margin-top:.8rem">
     <div class="box green" style="font-size:.85rem;text-align:center">
@@ -718,7 +718,7 @@ Fuentes consultadas:
 │
 ├── Datos/
 │   ├── indice.xlsx             <span class="cmt">← registro de documentos</span>
-│   └── data_storage/           <span class="cmt">← índice vectorial (no en git)</span>
+│   └── data_storage_lmstudio/           <span class="cmt">← índice vectorial (no en git)</span>
 │
 ├── Nuevos documentos/          <span class="cmt">← DROP ZONE de entrada</span>
 ├── Documentos/                 <span class="cmt">← archivo (no en git)</span>
@@ -736,7 +736,7 @@ Fuentes consultadas:
       <h3>Qué NO sube</h3>
       <ul class="small">
         <li style="color:#cf222e">→ <code>.env</code> — contiene claves API</li>
-        <li style="color:#cf222e">→ <code>Datos/data_storage/*</code> — vectores</li>
+        <li style="color:#cf222e">→ <code>Datos/data_storage_lmstudio/*</code> — vectores</li>
         <li style="color:#cf222e">→ <code>Documentos/*</code> — documentos reales</li>
       </ul>
     </div>
@@ -755,7 +755,7 @@ Fuentes consultadas:
       <span class="arrow" style="color:#b3d4ff">→</span>
       <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">🔢 Embeddings<br><small style="color:#b3d4ff">semánticos</small></div>
       <span class="arrow" style="color:#b3d4ff">→</span>
-      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">🗄️ Persistir<br><small style="color:#b3d4ff">data_storage/</small></div>
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">🗄️ Persistir<br><small style="color:#b3d4ff">data_storage_lmstudio/</small></div>
       <span class="arrow" style="color:#b3d4ff">→</span>
       <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">🔍 Retriever<br><small style="color:#b3d4ff">Vigente·top4·0.40</small></div>
       <span class="arrow" style="color:#b3d4ff">→</span>

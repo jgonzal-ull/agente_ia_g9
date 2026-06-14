@@ -6,9 +6,8 @@ CLAUDE.md
 __pycache__/
 *.pyc
 
-# Índice vectorial persistido (puede ser grande; se regenera en ejecución)
-Datos/data_storage/*
-!Datos/data_storage/.gitkeep
+# Índices vectoriales persistidos por backend (se regeneran en ejecución)
+Datos/data_storage*/
 
 # Documentos procesados (archivos reales, no código)
 Documentos/*

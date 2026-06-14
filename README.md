@@ -39,7 +39,8 @@ agente_ia_g9/
 │   └── main_openai_v4.0.py        # v4 — idéntico con la API de OpenAI
 ├── Datos/
 │   ├── indice.xlsx                # Registro y metadatos de los documentos (hoja «Hoja1»)
-│   └── data_storage/              # Índice vectorial persistido (IGNORADO; se crea al ejecutar)
+│   ├── data_storage_lmstudio/     # Índice vectorial del backend LM Studio (IGNORADO; se crea al ejecutar)
+│   └── data_storage_openai/       # Índice vectorial del backend OpenAI (IGNORADO; se crea al ejecutar)
 ├── Documentos/                    # Archivo de documentos ya procesados (IGNORADO salvo .gitkeep)
 ├── Nuevos documentos/             # Drop zone: documentos pendientes de indexar
 ├── Presentaciones/
@@ -50,7 +51,7 @@ agente_ia_g9/
 └── README.md
 ```
 
-> Los ficheros marcados como **IGNORADO** no se publican en GitHub (ver `.gitignore`). Al clonar el repositorio no aparecerán: `.env`, `CLAUDE.md`, el contenido de `Datos/data_storage/` y de `Documentos/`, y los `__pycache__/`.
+> Los ficheros marcados como **IGNORADO** no se publican en GitHub (ver `.gitignore`). Al clonar el repositorio no aparecerán: `.env`, `CLAUDE.md`, las carpetas de índice `Datos/data_storage_*/` y el contenido de `Documentos/`, ni los `__pycache__/`.
 
 ---
 
@@ -99,7 +100,7 @@ Estructurados en bloques claros. Funciones destacadas:
 - `digitaliza_documentos()` — orquesta todo, genera los `TextNode` y **mueve** cada documento procesado a `Documentos/`.
 
 **Índice vectorial (persistencia)**
-- `construir_indice()` / `actualizar_indice()` — crean o amplían el índice insertando nodo a nodo y lo persisten en `Datos/data_storage/`.
+- `construir_indice()` / `actualizar_indice()` — crean o amplían el índice insertando nodo a nodo y lo persisten en la carpeta del backend (`Datos/data_storage_lmstudio/` o `Datos/data_storage_openai/`).
 - `cargar_indice()` / `_indice_existe()` — recargan el índice desde disco sin recalcular embeddings.
 - `mostrar_reporte_indice()` — tabla por documento con trozos, palabras y tokens estimados.
 
@@ -135,7 +136,7 @@ Versión inicial y didáctica: solo PDF, troceado por palabras, índice **en mem
 1. **Registro** — se añade una fila al documento en `Datos/indice.xlsx` con sus metadatos.
 2. **Drop** — se coloca el fichero (`.pdf`, `.dokuwiki`, `.md`) en `Nuevos documentos/`.
 3. **Ingesta** — `main()` cruza cada fichero con el índice, extrae el texto, lo trocea (fijo o semántico) y lo enriquece con metadatos; los documentos sin fila en el índice se omiten.
-4. **Indexado** — cada trozo se convierte en un `TextNode` con un `IdTrozoTexto` único, se embebe y se inserta en el `VectorStoreIndex`, que se persiste en `Datos/data_storage/`.
+4. **Indexado** — cada trozo se convierte en un `TextNode` con un `IdTrozoTexto` único, se embebe y se inserta en el `VectorStoreIndex`, que se persiste en la carpeta de índice del backend (`Datos/data_storage_lmstudio/` o `Datos/data_storage_openai/`).
 5. **Archivado** — los documentos procesados se mueven a `Documentos/`.
 6. **Sincronización** *(v4.0)* — se alinea el metadato `Estado` de los chunks con el índice documental.
 7. **Consulta** — el retriever recupera los trozos `Vigente` más relevantes (top-k + score mínimo) y el LLM responde citando fuentes. En v4.0 esto ocurre vía el bot de Telegram.
@@ -166,7 +167,7 @@ Antes de colocar un documento en `Nuevos documentos/` debe existir una fila para
 |---|---|---|
 | `Nuevos documentos/` | Documentos pendientes de indexar (drop zone). | Sí |
 | `Documentos/` | Documentos ya procesados (movidos automáticamente). | No (solo `.gitkeep`) |
-| `Datos/data_storage/` | Índice vectorial persistido (`docstore.json`, `default__vector_store.json`, etc.). | No (se crea al ejecutar) |
+| `Datos/data_storage_lmstudio/`<br>`Datos/data_storage_openai/` | Índice vectorial persistido, **uno por backend** (`docstore.json`, `default__vector_store.json`, etc.). Los embeddings de LM Studio y OpenAI no son intercambiables, por eso cada uno tiene su propia carpeta. | No (se crean al ejecutar) |
 
 ---
 

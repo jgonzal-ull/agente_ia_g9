@@ -43,7 +43,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 FICHERO_INDICE                = "/app/Datos/indice.xlsx"       # registro de documentos
 CARPETA_ENTRADA_DOCUMENTOS    = "/app/Nuevos documentos/"      # documentos pendientes de indexar
 CARPETA_DOCUMENTOS_PROCESADOS = "/app/Documentos/"             # archivo de documentos ya procesados
-CARPETA_DATOS_SALVADOS        = "/app/Datos/data_storage/"     # almacén persistente del índice vectorial
+CARPETA_DATOS_SALVADOS        = "/app/Datos/data_storage_lmstudio/"  # índice vectorial (propio del backend LM Studio)
 
 # Servidor LM Studio
 SERVIDOR_LMSTUDIO = "http://openai.ull.es:8080/v1"

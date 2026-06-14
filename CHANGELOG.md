@@ -24,6 +24,9 @@ Registro de cambios del proyecto **Agente IA G9** — Sistema RAG con LlamaIndex
 ### Cambiado
 - **`main()` arranca el bot**: mantiene el flujo diario (ingesta de nuevos documentos → construir/actualizar índice → sincronizar `Estado` → reporte) y, en lugar del chat por consola (`chatear`), lanza el bot de Telegram (`iniciar_bot`). El índice pasa a ser variable global para que lo consulten los manejadores.
 
+### Corregido
+- **Índice persistido separado por backend**: `CARPETA_DATOS_SALVADOS` pasa a `Datos/data_storage_lmstudio/` (variantes LM Studio) y `Datos/data_storage_openai/` (variantes OpenAI) en los cuatro scripts v3.0 y v4.0. Los embeddings de ambos backends tienen dimensiones distintas y no son intercambiables: con una carpeta común, un índice creado por un backend fallaba (o daba resultados incorrectos) al consultarse con el otro. `.gitignore` pasa a ignorar `Datos/data_storage*/`.
+
 ---
 
 ## [3.0] — main_lmstudio_v3.0.py / main_openai_v3.0.py

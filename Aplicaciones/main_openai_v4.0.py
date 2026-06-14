@@ -38,7 +38,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 FICHERO_INDICE                = "/app/Datos/indice.xlsx"       # registro de documentos
 CARPETA_ENTRADA_DOCUMENTOS    = "/app/Nuevos documentos/"      # documentos pendientes de indexar
 CARPETA_DOCUMENTOS_PROCESADOS = "/app/Documentos/"             # archivo de documentos ya procesados
-CARPETA_DATOS_SALVADOS        = "/app/Datos/data_storage/"     # almacén persistente del índice vectorial
+CARPETA_DATOS_SALVADOS        = "/app/Datos/data_storage_openai/"    # índice vectorial (propio del backend OpenAI)
 
 # API OpenAI
 OPENAI_API_KEY    = os.getenv("OPENAI_API_KEY", "")   # o sustituir por la clave directamente
