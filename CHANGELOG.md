@@ -4,7 +4,7 @@ Registro de cambios del proyecto **Agente IA G9** — Sistema RAG con LlamaIndex
 
 ---
 
-## [4.0] — main_lmstudio_v4.0.py
+## [4.0] — main_lmstudio_v4.0.py / main_openai_v4.0.py
 
 ### Añadido
 - **Sincronización de `Estado` con el índice documental** (`sincronizar_estado_con_indice`): recorre `indice.xlsx`, construye un mapa `Identificador → Estado` y aplica ese valor a todos los chunks del store con el mismo `Identificador`, dejando la persistencia coherente con el índice (Vigente / No vigente, en ambos sentidos). Sustituye al ejemplo inicial de un único documento con valores fijos. Solo persiste si hay cambios y avisa de nodos sin `Identificador` o con identificadores ausentes en la hoja. Helper `_acceder_nodos_docstore` para acceder a los nodos tolerando el atributo protegido `_docs`.
@@ -18,12 +18,10 @@ Registro de cambios del proyecto **Agente IA G9** — Sistema RAG con LlamaIndex
 - **Lista blanca por variable de entorno** (`TELEGRAM_WHITELIST`): `chat_id` autorizados con formato `id:nombre,id:nombre`, parseados por `_parse_lista_blanca`. Los identificadores reales viven solo en `.env`; `.env.example` incluye un ejemplo ficticio para no publicar datos personales.
 - **Token del bot por entorno** (`TELEGRAM_TOKEN`): leído de `.env`, nunca versionado.
 - **Logging estructurado** (`logging.basicConfig` + `logger`): trazas con timestamp para depurar el bot y las consultas.
+- **Variante OpenAI** (`main_openai_v4.0.py`): versión paralela con todas las funcionalidades de v4.0 (sincronización de `Estado`, bot de Telegram, lista blanca, logging) usando la API oficial de OpenAI (`gpt-4o-mini` + `text-embedding-3-small`) en lugar del servidor LM Studio. Solo difiere en la integración del modelo; el resto del código es idéntico.
 
 ### Cambiado
 - **`main()` arranca el bot**: mantiene el flujo diario (ingesta de nuevos documentos → construir/actualizar índice → sincronizar `Estado` → reporte) y, en lugar del chat por consola (`chatear`), lanza el bot de Telegram (`iniciar_bot`). El índice pasa a ser variable global para que lo consulten los manejadores.
-
-### Pendiente
-- Portar todas las funcionalidades de v4.0 a `main_openai_v4.0.py`.
 
 ---
 
