@@ -2,6 +2,10 @@ CLAUDE.md
 .claude/
 .env
 
+# Artefactos de Python
+__pycache__/
+*.pyc
+
 # Índice vectorial persistido (puede ser grande; se regenera en ejecución)
 Datos/data_storage/*
 !Datos/data_storage/.gitkeep
