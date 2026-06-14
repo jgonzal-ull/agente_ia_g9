@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Agente RAG v4.0 — Bot de Telegram</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #e9ecef;
+    color: #24292f;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .deck { width: 100%; height: 100vh; position: relative; }
+
+  .slide {
+    display: none;
+    position: absolute; inset: 0;
+    padding: 48px 72px 68px;
+    flex-direction: column;
+    justify-content: flex-start;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+  }
+  .slide.active { display: flex; }
+
+  .slide.cover {
+    background: linear-gradient(145deg, #0550ae 0%, #1a3a6c 100%);
+    justify-content: center; align-items: center; text-align: center;
+    color: #fff; border: none;
+  }
+  .slide.cover h1, .slide.cover h2 { color: #fff; border: none; }
+  .slide.cover .subtitle { color: #b3d4ff; }
+
+  h1 { font-size: 2.6rem; font-weight: 800; color: #0550ae; line-height: 1.2; margin-bottom: .4rem; }
+  h2 { font-size: 1.85rem; font-weight: 700; color: #0550ae; margin-bottom: 1.2rem;
+       border-bottom: 2px solid #d0d7de; padding-bottom: .5rem; }
+  h3 { font-size: 1.05rem; font-weight: 600; color: #0550ae; margin-bottom: .5rem; margin-top: 1rem; }
+  .subtitle { font-size: 1.15rem; color: #57606a; margin-top: .5rem; }
+  .tag { display: inline-block; background: #ddf4ff; border: 1px solid #54aeff;
+         border-radius: 20px; padding: 3px 12px; font-size: .8rem; color: #0550ae; margin: 3px; }
+
+  ul { list-style: none; padding: 0; }
+  ul li { padding: .4rem 0 .4rem 1.6rem; position: relative; font-size: 1rem; color: #24292f; line-height: 1.5; }
+  ul li::before { content: "▸"; position: absolute; left: 0; color: #0550ae; }
+  ul.checks li::before { content: "✓"; color: #1a7f37; }
+  ul.small li { font-size: .92rem; }
+
+  .cols { display: grid; gap: 1.5rem; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .box {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: .9rem 1.1rem;
+  }
+  .box.green  { background: #dafbe1; border-color: #2da44e; }
+  .box.blue   { background: #ddf4ff; border-color: #54aeff; }
+  .box.orange { background: #fff1e5; border-color: #d4830f; }
+  .box.red    { background: #ffebe9; border-color: #cf222e; }
+
+  code {
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: .83rem;
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: #953800;
+  }
+
+  .codeblock {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: .9rem 1.1rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: .8rem;
+    line-height: 1.65;
+    overflow: auto;
+    white-space: pre;
+    color: #24292f;
+  }
+
+  /* Terminal mantiene fondo oscuro — contraste intencionado */
+  .term {
+    background: #1c2433;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: .9rem 1.1rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: .76rem;
+    line-height: 1.65;
+    color: #c9d1d9;
+    overflow: auto;
+    white-space: pre;
+  }
+  .term::before {
+    content: "● ● ●";
+    display: block;
+    color: #6e7781;
+    font-size: .65rem;
+    letter-spacing: 4px;
+    margin-bottom: .5rem;
+  }
+  .term .dim  { color: #6e7781; }
+  .term .hi   { color: #e3b341; }
+  .term .err  { color: #f85149; }
+  .term .info { color: #58a6ff; }
+  .term .ok   { color: #3fb950; }
+
+  /* Burbuja de chat de Telegram */
+  .tg {
+    background: #d9f2d0;
+    border: 1px solid #b7e3a8;
+    border-radius: 12px;
+    padding: .7rem 1rem;
+    font-size: .82rem;
+    line-height: 1.5;
+    color: #1c2b16;
+    white-space: pre-wrap;
+  }
+  .tg.user { background: #e8f7ff; border-color: #a9def7; }
+  .tg .src { color: #0550ae; }
+
+  /* Syntax tokens para codeblock claro */
+  .kw  { color: #cf222e; font-weight: 600; }
+  .str { color: #0550ae; }
+  .cmt { color: #6e7781; font-style: italic; }
+  .num { color: #0550ae; }
+  .fn  { color: #8250df; }
+  .var { color: #953800; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 11px;
+    border-radius: 20px;
+    font-size: .78rem;
+    font-weight: 600;
+  }
+  .badge.green  { background: #dafbe1; color: #1a7f37; border: 1px solid #2da44e; }
+  .badge.blue   { background: #ddf4ff; color: #0550ae; border: 1px solid #54aeff; }
+  .badge.orange { background: #fff1e5; color: #953800; border: 1px solid #d4830f; }
+  .badge.red    { background: #ffebe9; color: #cf222e; border: 1px solid #cf222e; }
+  .badge.new    { background: #fbefff; color: #8250df; border: 1px solid #c297e0; }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin: .8rem 0;
+  }
+  .flow-box {
+    background: #f6f8fa;
+    border: 1.5px solid #0550ae;
+    border-radius: 8px;
+    padding: .45rem .9rem;
+    font-size: .88rem;
+    text-align: center;
+    color: #24292f;
+  }
+  .arrow { color: #0550ae; font-size: 1.3rem; }
+
+  .num-big { font-size: 2.6rem; font-weight: 800; color: #0550ae; }
+  .label   { font-size: .82rem; color: #57606a; }
+
+  /* nav */
+  #nav {
+    position: fixed; bottom: 20px; right: 24px;
+    display: flex; align-items: center; gap: 10px;
+    z-index: 100;
+  }
+  #nav button {
+    background: #0550ae; color: #fff;
+    border: none; border-radius: 8px;
+    padding: 8px 18px; font-size: 1rem; cursor: pointer;
+    transition: background .15s; box-shadow: 0 2px 6px rgba(5,80,174,.3);
+  }
+  #nav button:hover { background: #033d8b; }
+  #counter { color: #57606a; font-size: .88rem; min-width: 60px; text-align: center; }
+
+  #slide-num {
+    position: fixed; top: 14px; right: 22px;
+    color: #b0b8c1; font-size: .78rem;
+  }
+
+  /* heading stripe on cover */
+  .cover-title {
+    font-size: 3.2rem; font-weight: 800; color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,.2);
+    line-height: 1.1; margin-bottom: .4rem;
+  }
+  .cover-sub {
+    font-size: 1.7rem; color: #b3d4ff; margin-bottom: 1.2rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+<!-- ═══════════════════════════════════  1  ═══ -->
+<div class="slide cover active" id="s1">
+  <div>
+    <div class="cover-title">Agente RAG · v4.0</div>
+    <div class="cover-sub">Front-end en Telegram</div>
+    <div class="subtitle">Novedades sobre la v3.0 — <code style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff">main_lmstudio_v4.0.py</code></div>
+    <div style="margin-top:2rem;display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">Bot de Telegram</span>
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">Lista blanca</span>
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">Sync de Estado</span>
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">Logging</span>
+      <span class="tag" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff">python-telegram-bot</span>
+    </div>
+    <div style="margin-top:2.5rem;color:#b3d4ff;font-size:.95rem">Universidad de La Laguna — G9</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  2  ═══ -->
+<div class="slide" id="s2">
+  <h2>¿Qué hay de nuevo en la v4.0?</h2>
+  <p style="color:#57606a;margin-bottom:1rem">Toda la base de la v3.0 se mantiene intacta (ingesta, troceado, persistencia, retriever). La v4.0 <strong>añade</strong> cinco bloques nuevos.</p>
+
+  <div class="cols cols-3" style="gap:1rem">
+    <div class="box blue">
+      <h3 style="margin-top:0">🤖 Front-end Telegram</h3>
+      <ul class="small">
+        <li><code>iniciar_bot()</code></li>
+        <li><code>comando_start()</code></li>
+        <li><code>manejar_mensaje()</code></li>
+        <li><code>error_handler()</code></li>
+      </ul>
+    </div>
+    <div class="box green">
+      <h3 style="margin-top:0">🔗 Puente bot → RAG</h3>
+      <ul class="small">
+        <li><code>obtener_respuesta_ia()</code></li>
+        <li><code>chatear_simple()</code></li>
+        <li>sustituye al <code>chatear()</code> de consola de la v3.0</li>
+      </ul>
+    </div>
+    <div class="box orange">
+      <h3 style="margin-top:0">🔒 Seguridad</h3>
+      <ul class="small">
+        <li><code>_parse_lista_blanca()</code></li>
+        <li><code>lista_blanca</code></li>
+        <li><code>TELEGRAM_TOKEN</code> y <code>TELEGRAM_WHITELIST</code> en <code>.env</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cols cols-2" style="gap:1rem;margin-top:1rem">
+    <div class="box red">
+      <h3 style="margin-top:0;color:#cf222e">🔄 Coherencia de datos</h3>
+      <ul class="small">
+        <li><code>sincronizar_estado_con_indice()</code> — alinea el metadato <code>Estado</code> de los chunks con <code>indice.xlsx</code></li>
+        <li><code>_acceder_nodos_docstore()</code></li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">🛠️ Infraestructura</h3>
+      <ul class="small">
+        <li><code>logging</code> + <code>logger</code> — trazas con timestamp</li>
+        <li><code>index</code> pasa a ser variable <strong>global</strong></li>
+        <li><code>main()</code> arranca el bot al final</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  3  ═══ -->
+<div class="slide" id="s3">
+  <h2>El cambio clave: de consola a Telegram</h2>
+  <p style="color:#57606a;margin-bottom:1rem">En la v3.0 el agente respondía a una lista fija de preguntas por consola. En la v4.0 atiende a usuarios reales por chat.</p>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div class="box orange">
+      <h3 style="margin-top:0;color:#953800">v3.0 — consola</h3>
+      <div class="codeblock" style="font-size:.76rem;background:#fff"><span class="cmt"># preguntas fijas en el código</span>
+chatear(index, [
+    <span class="str">"¿Quién es el responsable…?"</span>,
+    <span class="str">"¿Cómo es la estructura…?"</span>,
+])</div>
+      <ul class="small" style="margin-top:.6rem">
+        <li>Un solo usuario (quien ejecuta)</li>
+        <li>Preguntas escritas en <code>main()</code></li>
+        <li>Salida por <code>print()</code></li>
+      </ul>
+    </div>
+    <div class="box green">
+      <h3 style="margin-top:0;color:#1a7f37">v4.0 — bot de Telegram</h3>
+      <div class="codeblock" style="font-size:.76rem;background:#fff"><span class="cmt"># servidor que escucha mensajes</span>
+iniciar_bot()
+  <span class="cmt"># → application.run_polling()</span>
+  <span class="cmt"># atiende a cualquier usuario</span>
+  <span class="cmt"># autorizado, 24/7</span></div>
+      <ul class="small" style="margin-top:.6rem">
+        <li>Múltiples usuarios autorizados</li>
+        <li>Preguntas libres por chat</li>
+        <li>Respuesta enviada a Telegram</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="box blue" style="margin-top:1rem;font-size:.9rem">
+    El pipeline RAG <strong>no cambia</strong>: el bot es solo una nueva <em>puerta de entrada</em> a las mismas funciones de recuperación y generación.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  4  ═══ -->
+<div class="slide" id="s4">
+  <h2>Paso previo: dar de alta el bot</h2>
+  <p style="color:#57606a;margin-bottom:1rem">El token del bot lo entrega <strong>BotFather</strong>, el bot oficial de Telegram para gestionar bots.</p>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <div class="flow" style="flex-direction:column;align-items:flex-start;gap:.5rem">
+        <div class="flow-box" style="width:100%;text-align:left"><strong>1.</strong> Hablar con <code>@BotFather</code> → comando <code>/newbot</code></div>
+        <div class="arrow" style="margin-left:1rem">↓</div>
+        <div class="flow-box" style="width:100%;text-align:left"><strong>2.</strong> Elegir un <strong>nombre</strong> (p. ej. «Test Agente IA G9»)</div>
+        <div class="arrow" style="margin-left:1rem">↓</div>
+        <div class="flow-box" style="width:100%;text-align:left"><strong>3.</strong> Elegir un <strong>username</strong> terminado en <code>bot</code></div>
+        <div class="arrow" style="margin-left:1rem">↓</div>
+        <div class="flow-box" style="width:100%;text-align:left;border-color:#2da44e;background:#dafbe1"><strong>4.</strong> BotFather devuelve el <strong>token HTTP API</strong></div>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">El token tiene este formato</h3>
+      <div class="term"><span class="dim">Use this token to access the HTTP API:</span>
+<span class="hi">123456789:AAH-EjemploDeTokenNoReal_xyz</span>
+<span class="dim">Keep your token secure and store it safely.</span></div>
+      <div class="box red" style="margin-top:1rem;font-size:.88rem">
+        ⚠️ El token da control total del bot.<br>
+        <strong>Nunca</strong> se escribe en el código ni se sube a git: va en <code>.env</code>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  5  ═══ -->
+<div class="slide" id="s5">
+  <h2>Configuración nueva e índice global</h2>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <h3 style="margin-top:0">En la cabecera del script</h3>
+      <div class="codeblock" style="font-size:.75rem"><span class="cmt"># Token del bot, leído del entorno</span>
+<span class="var">TELEGRAM_TOKEN</span> = os.<span class="fn">getenv</span>(<span class="str">"TELEGRAM_TOKEN"</span>, <span class="str">""</span>)
+
+<span class="cmt"># Usuarios autorizados (desde .env)</span>
+<span class="var">lista_blanca</span> = <span class="fn">_parse_lista_blanca</span>(
+    os.<span class="fn">getenv</span>(<span class="str">"TELEGRAM_WHITELIST"</span>, <span class="str">""</span>))
+
+<span class="cmt"># ── Logging ──</span>
+logging.<span class="fn">basicConfig</span>(
+    format=<span class="str">"%(asctime)s - %(name)s - …"</span>,
+    level=logging.INFO)
+<span class="var">logger</span> = logging.<span class="fn">getLogger</span>(__name__)
+
+<span class="cmt"># Índice accesible por los handlers</span>
+<span class="var">index</span>: Any = <span class="kw">None</span></div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">En <code>Aplicaciones/.env</code></h3>
+      <div class="codeblock" style="font-size:.78rem"><span class="var">LMSTUDIO_APITOKEN</span>=<span class="str">sk-lm-…</span>
+<span class="var">OPENAI_API_KEY</span>=<span class="str">sk-proj-…</span>
+<span class="var">TELEGRAM_TOKEN</span>=<span class="str">123456789:AAH-Ejemplo</span>
+<span class="var">TELEGRAM_WHITELIST</span>=<span class="str">123456789:Nombre</span></div>
+      <div class="box green" style="margin-top:1rem;font-size:.88rem">
+        <code>.env</code> está en <code>.gitignore</code>: los valores reales <strong>nunca</strong> se publican.<br>
+        <code>.env.example</code> lleva un ejemplo ficticio.
+      </div>
+      <div class="box blue" style="margin-top:.8rem;font-size:.88rem">
+        <code>docker-compose.yml</code> inyecta el <code>.env</code> con <code>env_file</code>, sin tocar el código.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  6  ═══ -->
+<div class="slide" id="s6">
+  <h2>El nuevo <code>main()</code></h2>
+  <p style="color:#57606a;margin-bottom:1rem">Mantiene el flujo diario de la v3.0 y añade <span class="badge new">2 pasos nuevos</span> al final.</p>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <div class="codeblock" style="font-size:.76rem"><span class="kw">def</span> <span class="fn">main</span>():
+    <span class="kw">global</span> index            <span class="cmt"># ← NUEVO</span>
+    configurar_modelos()
+
+    <span class="cmt"># 1-2. Ingesta + construir/cargar índice</span>
+    <span class="cmt">#      (idéntico a la v3.0)</span>
+    listado = leer_archivos_carpeta(...)
+    <span class="kw">if</span> listado:
+        nodes = digitaliza_documentos(...)
+        ...
+        index = construir_indice(nodes)
+    <span class="kw">else</span>:
+        index = cargar_indice()
+
+    <span class="cmt"># 3. Coherencia de Estado   ← NUEVO</span>
+    <span class="fn">sincronizar_estado_con_indice</span>(index)
+
+    <span class="cmt"># 4. Reporte (igual que v3.0)</span>
+    mostrar_reporte_indice(index)
+
+    <span class="cmt"># 5. Arrancar el bot        ← NUEVO</span>
+    <span class="fn">iniciar_bot</span>()</div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Qué cambia respecto a la v3.0</h3>
+      <ul class="small">
+        <li><span class="badge new">+</span> <code>global index</code> — el índice deja de ser local para que lo vean los handlers del bot</li>
+        <li><span class="badge new">+</span> <code>sincronizar_estado_con_indice(index)</code> antes del reporte</li>
+        <li><span class="badge red">−</span> desaparece <code>chatear(index, [preguntas])</code></li>
+        <li><span class="badge new">+</span> en su lugar, <code>iniciar_bot()</code></li>
+      </ul>
+      <div class="box orange" style="margin-top:1rem;font-size:.88rem">
+        <strong>Idea:</strong> primero se prepara el conocimiento (ingesta + índice + sincronización) y, una vez listo, se levanta el bot para servir consultas.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  7  ═══ -->
+<div class="slide" id="s7">
+  <h2><code>iniciar_bot()</code> — arranque y registro de handlers</h2>
+
+  <div class="codeblock" style="font-size:.78rem"><span class="kw">def</span> <span class="fn">iniciar_bot</span>():
+    <span class="kw">if not</span> <span class="var">TELEGRAM_TOKEN</span>:
+        print(<span class="str">"TELEGRAM_TOKEN no definido…"</span>); <span class="kw">return</span>
+
+    application = <span class="fn">Application</span>.builder().token(<span class="var">TELEGRAM_TOKEN</span>).build()
+
+    application.<span class="fn">add_handler</span>(<span class="fn">CommandHandler</span>(<span class="str">"start"</span>, comando_start))                 <span class="cmt"># /start</span>
+    application.<span class="fn">add_handler</span>(<span class="fn">MessageHandler</span>(filters.TEXT &amp; ~filters.COMMAND, manejar_mensaje))  <span class="cmt"># texto normal</span>
+    application.<span class="fn">add_handler</span>(<span class="fn">MessageHandler</span>(filters.COMMAND, error_handler))            <span class="cmt"># comandos sueltos</span>
+    application.<span class="fn">add_error_handler</span>(error_handler)                                  <span class="cmt"># resto de errores</span>
+
+    application.<span class="fn">run_polling</span>()   <span class="cmt"># bucle que sondea Telegram en busca de mensajes</span></div>
+
+  <div class="cols cols-2" style="gap:1.5rem;margin-top:1rem">
+    <div>
+      <h3 style="margin-top:0">Cada <em>handler</em> atiende un tipo de evento</h3>
+      <ul class="small">
+        <li><code>CommandHandler("start", …)</code> → el comando <code>/start</code></li>
+        <li><code>filters.TEXT &amp; ~filters.COMMAND</code> → mensajes de texto que <strong>no</strong> son comandos</li>
+        <li><code>run_polling()</code> es <strong>bloqueante</strong>: el programa se queda aquí escuchando</li>
+      </ul>
+    </div>
+    <div class="box blue" style="font-size:.9rem">
+      <strong>filters.TEXT &amp; ~filters.COMMAND</strong><br>
+      <span style="color:#57606a">filtro de texto <strong>Y</strong> (<code>&amp;</code>) negación (<code>~</code>) de comando</span><br><br>
+      Así <code>/start</code> lo atiende su <code>CommandHandler</code> y el resto del texto va a <code>manejar_mensaje</code>.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  8  ═══ -->
+<div class="slide" id="s8">
+  <h2>Handlers <code>async</code>: <code>comando_start</code> y <code>error_handler</code></h2>
+  <p style="color:#57606a;margin-bottom:1rem">Los manejadores de <code>python-telegram-bot</code> son <strong>corrutinas</strong> (<code>async def</code>) con la firma <code>(update, context)</code>.</p>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <h3 style="margin-top:0">Bienvenida al <code>/start</code></h3>
+      <div class="codeblock" style="font-size:.74rem"><span class="kw">async def</span> <span class="fn">comando_start</span>(update, context):
+    user = update.effective_user
+    <span class="kw">await</span> update.message.<span class="fn">reply_html</span>(
+        <span class="str">rf"¡Hola {user.mention_html()}! "</span>
+        <span class="str">"Soy tu bot IA. Envíame un "</span>
+        <span class="str">"mensaje y te responderé."</span>)</div>
+      <ul class="small" style="margin-top:.6rem">
+        <li><code>update</code> = el mensaje/evento entrante</li>
+        <li><code>reply_html</code> permite formato (negrita, enlaces)</li>
+        <li><code>mention_html()</code> menciona al usuario por su nombre</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Registro de errores</h3>
+      <div class="codeblock" style="font-size:.74rem"><span class="kw">async def</span> <span class="fn">error_handler</span>(update, context):
+    logger.<span class="fn">error</span>(
+        <span class="str">f"Update {update} causó "</span>
+        <span class="str">f"error {context.error}"</span>)</div>
+      <div class="box" style="margin-top:.8rem;font-size:.88rem">
+        Captura cualquier excepción no controlada durante el procesado de un update y la deja en el log, en lugar de tumbar el bot.
+      </div>
+      <div class="box blue" style="margin-top:.8rem;font-size:.88rem">
+        <code>await</code> se usa porque enviar a Telegram es una operación de red asíncrona.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  9  ═══ -->
+<div class="slide" id="s9">
+  <h2><code>manejar_mensaje()</code> — el corazón del bot</h2>
+  <p style="color:#57606a;margin-bottom:.8rem">Se ejecuta con <strong>cada mensaje de texto</strong>. Comprueba la lista blanca antes de responder.</p>
+
+  <div class="codeblock" style="font-size:.77rem"><span class="kw">async def</span> <span class="fn">manejar_mensaje</span>(update, context):
+    mensaje_recibido = update.message.text
+    chat_id = update.message.chat_id
+
+    <span class="kw">if</span> chat_id <span class="kw">in</span> <span class="var">lista_blanca</span>:                        <span class="cmt"># ✓ usuario autorizado</span>
+        logger.info(<span class="str">f"Mensaje recibido de {chat_id}: '{mensaje_recibido}'"</span>)
+        respuesta_ia = <span class="fn">obtener_respuesta_ia</span>(mensaje_recibido)   <span class="cmt"># → RAG</span>
+    <span class="kw">else</span>:                                            <span class="cmt"># ✗ no autorizado</span>
+        respuesta_ia = (<span class="str">f"{update.effective_user.first_name} con id "</span>
+            <span class="str">f"{update.effective_user.id} no estás autorizado para el uso "</span>
+            <span class="str">"de este agente. Ponte en contacto con el administrador…"</span>)
+
+    <span class="kw">await</span> update.message.<span class="fn">reply_text</span>(respuesta_ia)            <span class="cmt"># responde en el chat</span></div>
+
+  <div class="cols cols-3" style="margin-top:1rem">
+    <div class="box green" style="font-size:.85rem;text-align:center"><strong>✓ Autorizado</strong><br>la pregunta va al agente RAG</div>
+    <div class="box red" style="font-size:.85rem;text-align:center"><strong>✗ No autorizado</strong><br>mensaje de rechazo con su <code>id</code></div>
+    <div class="box blue" style="font-size:.85rem;text-align:center"><strong>Siempre</strong><br><code>reply_text</code> contesta en el chat</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  10  ═══ -->
+<div class="slide" id="s10">
+  <h2>La lista blanca — <code>_parse_lista_blanca()</code></h2>
+  <p style="color:#57606a;margin-bottom:1rem">Los <code>chat_id</code> autorizados se leen del entorno, no del código, para no publicar datos personales.</p>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <div class="codeblock" style="font-size:.74rem"><span class="kw">def</span> <span class="fn">_parse_lista_blanca</span>(raw):
+    <span class="str">"""'id:nombre,id:nombre' → {int(id): nombre}"""</span>
+    autorizados = {}
+    <span class="kw">for</span> entrada <span class="kw">in</span> raw.split(<span class="str">","</span>):
+        entrada = entrada.strip()
+        <span class="kw">if not</span> entrada: <span class="kw">continue</span>
+        id_str, _, nombre = entrada.partition(<span class="str">":"</span>)
+        <span class="kw">try</span>:
+            autorizados[int(id_str)] = nombre.strip()
+        <span class="kw">except</span> ValueError:
+            print(<span class="str">"… id no numérico, ignorado"</span>)
+    <span class="kw">return</span> autorizados</div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Formato en <code>.env</code></h3>
+      <div class="codeblock" style="font-size:.78rem"><span class="var">TELEGRAM_WHITELIST</span>=<span class="str">111:Ana,222:Luis</span></div>
+      <div style="font-size:.85rem;color:#57606a;margin:.5rem 0 .8rem">se convierte en…</div>
+      <div class="codeblock" style="font-size:.78rem">{ <span class="num">111</span>: <span class="str">"Ana"</span>, <span class="num">222</span>: <span class="str">"Luis"</span> }</div>
+      <div class="box orange" style="margin-top:1rem;font-size:.88rem">
+        <strong>¿Cómo saber tu <code>chat_id</code>?</strong><br>
+        Escribe al bot y míralo en el log:<br>
+        <code style="font-size:.78rem">Mensaje recibido de 123456789: …</code>
+      </div>
+      <div class="box green" style="margin-top:.8rem;font-size:.88rem">
+        Añadir un usuario = añadir su <code>id:nombre</code> al <code>.env</code>. Sin tocar el código.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  11  ═══ -->
+<div class="slide" id="s11">
+  <h2><code>obtener_respuesta_ia()</code> — el puente al RAG</h2>
+  <p style="color:#57606a;margin-bottom:1rem">Decide si responde con un atajo rápido o consulta de verdad al motor RAG.</p>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <div class="codeblock" style="font-size:.76rem"><span class="kw">def</span> <span class="fn">obtener_respuesta_ia</span>(mensaje_usuario):
+    logger.info(<span class="str">f"Mensaje para la IA: …"</span>)
+
+    <span class="kw">if</span> <span class="str">"hola"</span> <span class="kw">in</span> mensaje_usuario.lower():
+        respuesta = <span class="str">"¡Hola! Soy tu asistente…"</span>
+    <span class="kw">elif</span> <span class="str">"cómo estás"</span> <span class="kw">in</span> …:
+        respuesta = <span class="str">"Estoy funcionando…"</span>
+    <span class="kw">elif</span> <span class="str">"adiós"</span> <span class="kw">in</span> …:
+        respuesta = <span class="str">"¡Hasta pronto!"</span>
+    <span class="kw">else</span>:
+        respuesta = <span class="fn">chatear_simple</span>(
+            <span class="var">index</span>, Settings.llm, mensaje_usuario)
+
+    <span class="kw">return</span> respuesta</div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Dos caminos</h3>
+      <ul class="small">
+        <li><span class="badge green">Atajo</span> saludos como «hola», «cómo estás», «adiós» → respuesta fija e instantánea, sin gastar el LLM</li>
+        <li><span class="badge blue">RAG</span> cualquier otra cosa → <code>chatear_simple()</code> con el <strong>índice global</strong> y <code>Settings.llm</code></li>
+      </ul>
+      <div class="box" style="margin-top:1rem;font-size:.88rem">
+        Aquí es donde se usa la variable <strong>global</strong> <code>index</code>: el handler no recibe el índice por parámetro, lo toma del ámbito global preparado en <code>main()</code>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  12  ═══ -->
+<div class="slide" id="s12">
+  <h2><code>chatear_simple()</code> — consulta y referencias</h2>
+  <p style="color:#57606a;margin-bottom:.8rem">Es el <code>chatear()</code> de la v3.0 adaptado al bot: en vez de imprimir, <strong>devuelve un texto</strong> listo para enviar.</p>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <div class="codeblock" style="font-size:.73rem">chat_engine = indice.<span class="fn">as_chat_engine</span>(
+    chat_mode=<span class="str">"context"</span>,
+    similarity_top_k=<span class="var">RETRIEVER_TOP_K</span>,
+    filters=filtros,              <span class="cmt"># Estado=Vigente</span>
+    node_postprocessors=[…0.40…],
+    system_prompt=<span class="str">"…cita tus fuentes…"</span>)
+
+obj_response = chat_engine.chat(pregunta)
+responses.append(str(obj_response.response))
+
+<span class="kw">for</span> sn <span class="kw">in</span> obj_response.source_nodes:
+    url = sn.node.metadata.get(<span class="str">"URL"</span>)
+    referencias.append(<span class="str">f"- {url}"</span>)
+
+<span class="kw">return</span> <span class="str">"\n"</span>.join(responses + referencias)</div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Mismos filtros que la v3.0</h3>
+      <ul class="small">
+        <li><code>Estado = "Vigente"</code> · <code>top_k = 4</code> · score ≥ <code>0.40</code></li>
+      </ul>
+      <h3>Dos diferencias importantes</h3>
+      <ul class="small">
+        <li><span class="badge new">↩</span> <strong>devuelve un <code>str</code></strong> (no imprime) — porque <code>reply_text</code> necesita una cadena</li>
+        <li><span class="badge new">🔗</span> añade un bloque <strong>Referencias</strong> con las <code>URL</code> de las fuentes</li>
+      </ul>
+      <div class="box blue" style="margin-top:.8rem;font-size:.86rem">
+        El detalle verboso (score, metadatos, texto) va al <strong>log</strong>, no al chat: Telegram corta los mensajes a 4096 caracteres.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  13  ═══ -->
+<div class="slide" id="s13">
+  <h2>Sincronización de <code>Estado</code> — el problema</h2>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <p style="font-size:.95rem;color:#57606a;margin-bottom:.8rem">
+        Un documento puede dejar de estar vigente. Se cambia su <code>Estado</code> en <code>indice.xlsx</code>…
+      </p>
+      <div class="term"><span class="dim">indice.xlsx</span>
+Identificador  Estado
+2025-06        <span class="err">No vigente</span>   ← cambiado</div>
+      <p style="font-size:.92rem;color:#57606a;margin:.9rem 0 .4rem">
+        …pero los <strong>chunks ya indexados</strong> conservan el valor antiguo en su metadato:
+      </p>
+      <div class="term"><span class="dim">data_storage/ (chunks de 2025-06)</span>
+2025-06-0  Estado = <span class="hi">Vigente</span>   ← desactualizado
+2025-06-1  Estado = <span class="hi">Vigente</span>   ← desactualizado</div>
+    </div>
+    <div>
+      <div class="box red" style="font-size:.92rem">
+        <h3 style="margin-top:0;color:#cf222e">La consecuencia</h3>
+        El retriever filtra por <code>Estado = "Vigente"</code>.<br><br>
+        Si los chunks no se actualizan, el agente <strong>seguiría citando un documento ya obsoleto</strong>.
+      </div>
+      <div class="box green" style="margin-top:1rem;font-size:.92rem">
+        <h3 style="margin-top:0;color:#1a7f37">La meta</h3>
+        Que el metadato <code>Estado</code> de <strong>todos los chunks</strong> sea siempre coherente con <code>indice.xlsx</code>, en ambos sentidos (Vigente ⇄ No vigente).
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  14  ═══ -->
+<div class="slide" id="s14">
+  <h2><code>sincronizar_estado_con_indice()</code> — la solución</h2>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <div class="codeblock" style="font-size:.73rem"><span class="cmt"># 1. Mapa Identificador → Estado (del xlsx)</span>
+df = pd.read_excel(<span class="var">FICHERO_INDICE</span>, …)
+mapa_estado = { str(id): str(estado) … }
+
+<span class="cmt"># 2. Recorrer TODOS los chunks del store</span>
+<span class="kw">for</span> node <span class="kw">in</span> <span class="fn">_acceder_nodos_docstore</span>(docstore):
+    ident = node.metadata.get(<span class="str">"Identificador"</span>)
+    correcto = mapa_estado.get(ident)
+    actual   = node.metadata.get(<span class="str">"Estado"</span>)
+
+    <span class="kw">if</span> actual != correcto:        <span class="cmt"># 3. corregir</span>
+        node.metadata[<span class="str">"Estado"</span>] = correcto
+        nodes_a_actualizar.append(node)
+
+<span class="cmt"># 4. Persistir SOLO si hubo cambios</span>
+<span class="kw">if</span> nodes_a_actualizar:
+    docstore.add_documents(nodes_a_actualizar)
+    index.storage_context.persist(…)</div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Cuatro pasos</h3>
+      <ul class="small">
+        <li><span class="badge blue">1</span> Lee <code>indice.xlsx</code> → diccionario <code>Identificador → Estado</code></li>
+        <li><span class="badge blue">2</span> Recorre los nodos del store (<code>_acceder_nodos_docstore</code> tolera <code>docs</code> / <code>_docs</code>)</li>
+        <li><span class="badge blue">3</span> Compara y corrige solo los que difieren</li>
+        <li><span class="badge blue">4</span> Re-persiste únicamente si hubo cambios</li>
+      </ul>
+      <div class="box" style="margin-top:.8rem;font-size:.86rem">
+        Es <strong>genérico</strong>: funciona para cualquier <code>Identificador</code> y en ambos sentidos. Avisa de chunks sin <code>Identificador</code> o ausentes del índice.
+      </div>
+      <div class="term" style="margin-top:.8rem;font-size:.72rem"><span class="info">  [2025-06] 2025-06-0: 'Vigente' → 'No vigente'</span>
+<span class="ok">Metadatos 'Estado' sincronizados y store persistido.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  15  ═══ -->
+<div class="slide" id="s15">
+  <h2>Logging estructurado</h2>
+  <p style="color:#57606a;margin-bottom:1rem">La v4.0 sustituye muchos <code>print</code> por <code>logger</code>: trazas con marca de tiempo, imprescindibles para depurar un bot que corre desatendido.</p>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <h3 style="margin-top:0">Configuración (una vez)</h3>
+      <div class="codeblock" style="font-size:.75rem">logging.<span class="fn">basicConfig</span>(
+    format=<span class="str">"%(asctime)s - %(name)s - "</span>
+           <span class="str">"%(levelname)s - %(message)s"</span>,
+    level=logging.INFO)
+<span class="var">logger</span> = logging.<span class="fn">getLogger</span>(__name__)</div>
+      <h3>Uso en el código</h3>
+      <div class="codeblock" style="font-size:.75rem">logger.<span class="fn">info</span>(<span class="str">f"Mensaje recibido de {chat_id}"</span>)
+logger.<span class="fn">info</span>(<span class="str">"Creando el Chat Engine…"</span>)
+logger.<span class="fn">error</span>(<span class="str">f"… causó error {context.error}"</span>)</div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Así se ve en consola</h3>
+      <div class="term" style="font-size:.71rem">2025-06-15 16:10:47 - __main__ - <span class="info">INFO</span> - Mensaje
+  recibido de 123456789: '¿Quién es el responsable…?'
+2025-06-15 16:10:47 - __main__ - <span class="info">INFO</span> - Mensaje
+  para la IA: '¿Quién es el responsable…?'
+2025-06-15 16:10:47 - __main__ - <span class="info">INFO</span> - Creando
+  el Chat Engine…
+2025-06-15 16:10:48 - __main__ - <span class="info">INFO</span> - Chat
+  Engine listo.
+2025-06-15 16:10:51 - httpx - <span class="info">INFO</span> - HTTP
+  Request: POST …/getUpdates "200 OK"</div>
+      <div class="box blue" style="margin-top:.8rem;font-size:.88rem">
+        Niveles: <code>INFO</code> para el flujo normal, <code>ERROR</code> para problemas. La librería de Telegram también escribe sus propias trazas.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  16  ═══ -->
+<div class="slide" id="s16">
+  <h2>Flujo completo de un mensaje</h2>
+  <p style="color:#57606a;margin-bottom:1rem">Recorrido de extremo a extremo, desde que el usuario escribe hasta que recibe la respuesta.</p>
+
+  <div class="flow" style="justify-content:center;gap:.4rem">
+    <div class="flow-box" style="border-color:#54aeff;background:#ddf4ff">📱 Usuario<br><small style="color:#57606a">escribe en Telegram</small></div>
+    <span class="arrow">→</span>
+    <div class="flow-box">🔄 <code>run_polling</code><br><small style="color:#57606a">recibe el update</small></div>
+    <span class="arrow">→</span>
+    <div class="flow-box">🧭 <code>manejar_mensaje</code><br><small style="color:#57606a">enruta el texto</small></div>
+  </div>
+
+  <div class="flow" style="justify-content:center;gap:.4rem">
+    <div class="flow-box" style="border-color:#d4830f;background:#fff1e5">🔒 ¿<code>chat_id</code> en<br><code>lista_blanca</code>?</div>
+    <span class="arrow">→</span>
+    <div class="flow-box" style="border-color:#2da44e;background:#dafbe1">🔗 <code>obtener_</code><br><code>respuesta_ia</code></div>
+    <span class="arrow">→</span>
+    <div class="flow-box" style="border-color:#2da44e;background:#dafbe1">🧠 <code>chatear_simple</code><br><small style="color:#57606a">retriever + LLM</small></div>
+  </div>
+
+  <div class="flow" style="justify-content:center;gap:.4rem">
+    <div class="flow-box" style="border-color:#2da44e;background:#dafbe1">🔍 Vigente · top4 · 0.40<br><small style="color:#57606a">trozos relevantes</small></div>
+    <span class="arrow">→</span>
+    <div class="flow-box" style="border-color:#2da44e;background:#dafbe1">🤖 LLM<br><small style="color:#57606a">+ Referencias</small></div>
+    <span class="arrow">→</span>
+    <div class="flow-box" style="border-color:#54aeff;background:#ddf4ff">💬 <code>reply_text</code><br><small style="color:#57606a">respuesta al chat</small></div>
+  </div>
+
+  <div class="cols cols-2" style="gap:1.5rem;margin-top:1rem">
+    <div class="box green" style="font-size:.88rem"><strong>Usuario autorizado</strong> → recorre toda la cadena y recibe la respuesta con fuentes.</div>
+    <div class="box red" style="font-size:.88rem"><strong>Usuario no autorizado</strong> → corta en el paso 🔒 y recibe el mensaje de rechazo.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  17  ═══ -->
+<div class="slide" id="s17">
+  <h2>Ejemplo real en Telegram</h2>
+
+  <div class="cols cols-2" style="gap:1.5rem">
+    <div>
+      <h3 style="margin-top:0">Log del servidor</h3>
+      <div class="term" style="font-size:.72rem"><span class="info">INFO</span> - Mensaje recibido de 123456789:
+  '<span class="hi">Elabora una tabla con los permisos
+  entre festivos de 2025</span>'
+<span class="info">INFO</span> - Creando el Chat Engine…
+<span class="info">INFO</span> - Chat Engine listo.
+<span class="info">INFO</span> - Fuentes consultadas:
+<span class="ok">  Fuente 1: Score=0.4731</span>
+<span class="ok">  Fuente 2: Score=0.4108</span></div>
+      <div class="box red" style="margin-top:.8rem;font-size:.84rem">
+        Un <code>chat_id</code> fuera de la lista recibiría:<br>
+        <em>«… no estás autorizado para el uso de este agente…»</em>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Lo que ve el usuario</h3>
+      <div class="tg user" style="margin-bottom:.5rem">Elabora una tabla con los permisos entre festivos que puedo disfrutar en 2025</div>
+      <div class="tg">Aquí está la tabla de permisos entre festivos de 2025, basada en el documento proporcionado.
+
+| Fecha | Permiso |
+| 31 de enero | Día laborable |
+| 30 de abril | Día laborable |
+| 2 de mayo | Solo Centros de La Laguna |
+| 5 de diciembre | Día laborable |
+
+<span class="src">Referencias:
+- https://sede.ull.es/ecivilis-site/…</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  18  ═══ -->
+<div class="slide" id="s18">
+  <h2>La variante con OpenAI</h2>
+  <p style="color:#57606a;margin-bottom:1rem"><code>main_openai_v4.0.py</code> tiene <strong>exactamente</strong> el mismo bot, lista blanca y sincronización. Solo cambia el motor de inferencia.</p>
+
+  <div class="codeblock" style="font-size:.79rem"><span class="cmt"># LM Studio (servidor propio)            # OpenAI (API oficial)</span>
+Settings.embed_model = <span class="fn">LMStudioEmbedding</span>(…)    Settings.embed_model = <span class="fn">OpenAIEmbedding</span>(…)
+Settings.llm = <span class="fn">OpenAILike</span>(…)                  Settings.llm = <span class="fn">OpenAI</span>(…)</div>
+
+  <div class="cols cols-2" style="gap:1.5rem;margin-top:1.2rem">
+    <table style="font-size:.86rem;border-collapse:collapse;width:100%">
+      <tr style="border-bottom:2px solid #d0d7de"><th style="text-align:left;padding:.4rem;color:#0550ae"></th><th style="text-align:left;padding:.4rem;color:#0550ae">LM Studio</th><th style="text-align:left;padding:.4rem;color:#0550ae">OpenAI</th></tr>
+      <tr style="border-bottom:1px solid #eaeef2"><td style="padding:.4rem;color:#57606a">LLM</td><td style="padding:.4rem"><code>qwen3.5-9b</code></td><td style="padding:.4rem"><code>gpt-4o-mini</code></td></tr>
+      <tr style="border-bottom:1px solid #eaeef2"><td style="padding:.4rem;color:#57606a">Embeddings</td><td style="padding:.4rem"><code>qwen3-…0.6b</code></td><td style="padding:.4rem"><code>text-embed-3-small</code></td></tr>
+      <tr style="border-bottom:1px solid #eaeef2"><td style="padding:.4rem;color:#57606a">Credencial</td><td style="padding:.4rem"><code>LMSTUDIO_APITOKEN</code></td><td style="padding:.4rem"><code>OPENAI_API_KEY</code></td></tr>
+      <tr><td style="padding:.4rem;color:#57606a">Servidor</td><td style="padding:.4rem"><code>openai.ull.es:8080</code></td><td style="padding:.4rem">API de OpenAI</td></tr>
+    </table>
+    <div class="box green" style="font-size:.9rem">
+      <h3 style="margin-top:0;color:#1a7f37">Misma estructura, dos motores</h3>
+      Todas las funciones nuevas de la v4.0 (bot, lista blanca, sincronización de <code>Estado</code>, logging) son <strong>idénticas</strong> en ambos ficheros.<br><br>
+      Elegir motor = elegir qué <code>main_*_v4.0.py</code> ejecutas.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════  19  ═══ -->
+<div class="slide cover" id="s19">
+  <div>
+    <div style="font-size:1.8rem;font-weight:700;color:#b3d4ff;margin-bottom:1.2rem">v4.0 en una frase</div>
+    <div style="font-size:1.25rem;color:#fff;max-width:880px;margin:0 auto 1.5rem;line-height:1.5">
+      El mismo motor RAG de la v3.0, ahora accesible como un <strong>bot de Telegram</strong> con usuarios autorizados y datos siempre coherentes.
+    </div>
+
+    <div class="flow" style="justify-content:center;flex-wrap:wrap;gap:.6rem;margin:1.2rem 0">
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">📱 Telegram<br><small style="color:#b3d4ff">usuario</small></div>
+      <span class="arrow" style="color:#b3d4ff">→</span>
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">🔒 Lista blanca</div>
+      <span class="arrow" style="color:#b3d4ff">→</span>
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">🧠 RAG<br><small style="color:#b3d4ff">v3.0</small></div>
+      <span class="arrow" style="color:#b3d4ff">→</span>
+      <div class="flow-box" style="border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff">💬 Respuesta<br><small style="color:#b3d4ff">con fuentes</small></div>
+    </div>
+
+    <div style="display:flex;gap:1.2rem;justify-content:center;margin-top:1.5rem">
+      <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:.8rem 1.6rem;text-align:center">
+        <div style="font-size:2.2rem;font-weight:800;color:#fff">v4.0</div>
+        <div style="color:#b3d4ff;font-size:.82rem">versión actual</div>
+      </div>
+      <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:.8rem 1.6rem;text-align:center">
+        <div style="font-size:2.2rem;font-weight:800;color:#fff">9</div>
+        <div style="color:#b3d4ff;font-size:.82rem">funciones nuevas</div>
+      </div>
+      <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:.8rem 1.6rem;text-align:center">
+        <div style="font-size:2.2rem;font-weight:800;color:#fff">2</div>
+        <div style="color:#b3d4ff;font-size:.82rem">motores (LM Studio / OpenAI)</div>
+      </div>
+    </div>
+
+    <div style="margin-top:2rem;color:#b3d4ff;font-size:.92rem">
+      Repositorio: <code style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff;border-radius:4px;padding:2px 8px">github.com/jgonzal-ull/agente_ia_g9</code>
+    </div>
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<div id="slide-num"></div>
+
+<div id="nav">
+  <button onclick="go(-1)">◀</button>
+  <span id="counter">1 / 19</span>
+  <button onclick="go(1)">▶</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    document.getElementById('counter').textContent = (cur + 1) + ' / ' + slides.length;
+    document.getElementById('slide-num').textContent = (cur + 1) + ' / ' + slides.length;
+  }
+
+  function go(d) { show(cur + d); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  go(-1);
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End')  show(slides.length - 1);
+  });
+
+  show(0);
+</script>
+</body>
+</html>

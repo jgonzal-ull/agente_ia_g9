@@ -43,7 +43,8 @@ agente_ia_g9/
 ├── Documentos/                    # Archivo de documentos ya procesados (IGNORADO salvo .gitkeep)
 ├── Nuevos documentos/             # Drop zone: documentos pendientes de indexar
 ├── Presentaciones/
-│   └── presentacion_v3.html       # Presentación didáctica del código v3.0 (16 diapositivas)
+│   ├── presentacion_v3.html       # Presentación didáctica del código v3.0 (16 diapositivas)
+│   └── presentacion_v4.html       # Novedades de la v4.0: bot de Telegram, etc. (19 diapositivas)
 ├── CHANGELOG.md                   # Historial de cambios por versión
 ├── CLAUDE.md                      # Guía para Claude Code (IGNORADO por git)
 └── README.md
@@ -303,4 +304,4 @@ Todas se instalan en la imagen mediante el `Dockerfile`.
 
 ## Historial de cambios
 
-El detalle de cada versión está en [`CHANGELOG.md`](CHANGELOG.md). Material didáctico del código v3.0 en [`Presentaciones/presentacion_v3.html`](Presentaciones/presentacion_v3.html).
+El detalle de cada versión está en [`CHANGELOG.md`](CHANGELOG.md). Material didáctico en [`Presentaciones/presentacion_v3.html`](Presentaciones/presentacion_v3.html) (pipeline de la v3.0) y [`Presentaciones/presentacion_v4.html`](Presentaciones/presentacion_v4.html) (novedades de la v4.0: bot de Telegram, lista blanca y sincronización de `Estado`).

@@ -19,6 +19,7 @@ Registro de cambios del proyecto **Agente IA G9** — Sistema RAG con LlamaIndex
 - **Token del bot por entorno** (`TELEGRAM_TOKEN`): leído de `.env`, nunca versionado.
 - **Logging estructurado** (`logging.basicConfig` + `logger`): trazas con timestamp para depurar el bot y las consultas.
 - **Variante OpenAI** (`main_openai_v4.0.py`): versión paralela con todas las funcionalidades de v4.0 (sincronización de `Estado`, bot de Telegram, lista blanca, logging) usando la API oficial de OpenAI (`gpt-4o-mini` + `text-embedding-3-small`) en lugar del servidor LM Studio. Solo difiere en la integración del modelo; el resto del código es idéntico.
+- **Presentación HTML** (`Presentaciones/presentacion_v4.html`): 19 diapositivas con tema claro centradas en las novedades de la v4.0 respecto a la v3.0 (paso de consola a bot de Telegram, handlers, lista blanca, `obtener_respuesta_ia`/`chatear_simple`, sincronización de `Estado`, logging, nuevo `main()` y variante OpenAI); navegable con teclado.
 
 ### Cambiado
 - **`main()` arranca el bot**: mantiene el flujo diario (ingesta de nuevos documentos → construir/actualizar índice → sincronizar `Estado` → reporte) y, en lugar del chat por consola (`chatear`), lanza el bot de Telegram (`iniciar_bot`). El índice pasa a ser variable global para que lo consulten los manejadores.
